@@ -112,7 +112,7 @@
           </div>
         </div>
 
-        <div class="space-y-1 mt-3">
+        <div class="space-y-1 mt-2">
           <div class="flex items-center gap-2">
             <h2 id="stationName" class="text-2xl font-bold tracking-wide text-slate-100">京士柏</h2>
             <span id="warningBadge" class="hidden text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">天氣警告</span>
@@ -121,15 +121,39 @@
         </div>
       </div>
 
-      <div class="my-3">
-        <div class="inline-flex items-center gap-2 bg-neutral-800/80 border border-neutral-700 px-3 py-1.5 rounded-lg text-sm text-amber-200/90 w-full sm:w-auto">
-          <i class="fa-solid fa-calendar-check text-amber-400"></i>
-          <span id="countdownTitle">中秋節翌日</span>
-          <span class="text-amber-400 font-bold">還有 <span id="countdownDays">--</span> 天</span>
+      <!-- Expanded Prominent Countdown Section -->
+      <div class="my-3 bg-gradient-to-br from-amber-950/60 via-amber-900/30 to-slate-900/90 border border-amber-500/40 rounded-xl p-3.5 shadow-lg relative overflow-hidden">
+        <div class="absolute top-0 right-0 -mt-2 -mr-2 bg-amber-500/10 text-amber-400/20 text-6xl font-black pointer-events-none select-none">
+          <i class="fa-solid fa-calendar-days"></i>
+        </div>
+
+        <div class="flex items-center justify-between gap-1 mb-1">
+          <div class="flex items-center gap-1.5 text-xs text-amber-300 font-bold uppercase tracking-wider">
+            <i class="fa-solid fa-plane-departure text-amber-400"></i>
+            <span id="countdownLabel">香港公眾假期 (自動倒數)</span>
+          </div>
+          <span id="autoBadge" class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded">自動追蹤</span>
+        </div>
+
+        <div class="mt-1">
+          <h3 id="countdownTitle" class="text-xl sm:text-2xl font-black text-white tracking-wide">
+            --
+          </h3>
+          <p id="countdownSubdate" class="text-xs text-amber-200/80 font-medium mt-0.5">
+            ----年--月--日
+          </p>
+        </div>
+
+        <div class="mt-2.5 pt-2 border-t border-amber-500/20 flex items-baseline justify-between">
+          <span class="text-xs text-slate-300 font-semibold">距離放假還有</span>
+          <div class="flex items-baseline gap-1">
+            <span id="countdownDays" class="text-5xl sm:text-6xl font-black font-mono text-amber-400 drop-shadow-md">--</span>
+            <span class="text-lg font-extrabold text-amber-300">天</span>
+          </div>
         </div>
       </div>
 
-      <div class="pt-3 border-t border-slate-800/80 flex flex-col items-start justify-end">
+      <div class="pt-2 border-t border-slate-800/80 flex flex-col items-start justify-end">
         <div id="clockDisplay" class="text-5xl lg:text-6xl font-extrabold font-mono tracking-wider text-white">
           00:00:00
         </div>
@@ -195,11 +219,25 @@
 
           <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700">
             <h4 class="font-bold text-slate-200 mb-2 flex items-center gap-2 text-xs">
-              <i class="fa-solid fa-clock text-cyan-400"></i> 倒數倒計時設定
+              <i class="fa-solid fa-calendar-check text-amber-400"></i> 倒數模式設定
             </h4>
             <div class="space-y-1.5">
-              <input type="text" id="inputCountdownTitle" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white" placeholder="例如：中秋節翌日">
-              <input type="date" id="inputCountdownDate" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white">
+              <select id="selectCountdownMode" onchange="toggleCountdownInputMode()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+                <option value="AUTO_HK">🤖 自動追蹤下個香港公眾假期</option>
+                <option value="SELECT_HK">📅 選擇指定香港公眾假期</option>
+                <option value="CUSTOM">✏️ 完全自訂日期與名稱</option>
+              </select>
+
+              <!-- Dropdown for HK holidays -->
+              <select id="selectHkHolidayDropdown" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white hidden">
+                <!-- Dynamic choices populated in JS -->
+              </select>
+
+              <!-- Custom inputs -->
+              <div id="customCountdownFields" class="space-y-1 hidden">
+                <input type="text" id="inputCountdownTitle" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white" placeholder="自訂目標名稱 (如：生日/旅行)">
+                <input type="date" id="inputCountdownDate" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white">
+              </div>
             </div>
           </div>
         </div>
@@ -271,6 +309,10 @@
             </div>
           </div>
 
+          <!-- Alert message box inside modal for clean notifications -->
+          <div id="modalAlertBox" class="hidden p-2 bg-rose-950/80 border border-rose-700 rounded text-rose-200 text-xs text-center font-bold">
+          </div>
+
           <button onclick="addSelectedRoute()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs transition shadow-md">
             + 新增選定路線至首頁 Display
           </button>
@@ -307,6 +349,66 @@
   </div>
 
   <script>
+    // Hong Kong General Public Holidays Database (2025, 2026, 2027)
+    const HK_PUBLIC_HOLIDAYS = [
+      // 2025
+      { date: '2025-01-01', title: '一月一日 (元旦)' },
+      { date: '2025-01-29', title: '農曆年初一' },
+      { date: '2025-01-30', title: '農曆年初二' },
+      { date: '2025-01-31', title: '農曆年初三' },
+      { date: '2025-04-04', title: '清明節' },
+      { date: '2025-04-18', title: '耶穌受難節 (Good Friday)' },
+      { date: '2025-04-19', title: '耶穌受難節翌日' },
+      { date: '2025-04-21', title: '復活節星期一' },
+      { date: '2025-05-01', title: '勞動節' },
+      { date: '2025-05-05', title: '佛誕' },
+      { date: '2025-05-31', title: '端午節' },
+      { date: '2025-07-01', title: '香港特別行政區成立紀念日' },
+      { date: '2025-10-01', title: '國慶日' },
+      { date: '2025-10-07', title: '中秋節翌日' },
+      { date: '2025-10-29', title: '重陽節' },
+      { date: '2025-12-25', title: '聖誕節' },
+      { date: '2025-12-26', title: '聖誕節後第一個周日 (Boxing Day)' },
+
+      // 2026
+      { date: '2026-01-01', title: '一月一日 (元旦)' },
+      { date: '2026-02-17', title: '農曆年初一' },
+      { date: '2026-02-18', title: '農曆年初二' },
+      { date: '2026-02-19', title: '農曆年初三' },
+      { date: '2026-04-03', title: '耶穌受難節 (Good Friday)' },
+      { date: '2026-04-04', title: '耶穌受難節翌日' },
+      { date: '2026-04-05', title: '清明節' },
+      { date: '2026-04-06', title: '復活節星期一' },
+      { date: '2026-05-01', title: '勞動節' },
+      { date: '2026-05-24', title: '佛誕' },
+      { date: '2026-06-19', title: '端午節' },
+      { date: '2026-07-01', title: '香港特別行政區成立紀念日' },
+      { date: '2026-09-26', title: '中秋節翌日' },
+      { date: '2026-10-01', title: '國慶日' },
+      { date: '2026-10-18', title: '重陽節' },
+      { date: '2026-12-25', title: '聖誕節' },
+      { date: '2026-12-26', title: '聖誕節後第一個周日 (Boxing Day)' },
+
+      // 2027
+      { date: '2027-01-01', title: '一月一日 (元旦)' },
+      { date: '2027-02-06', title: '農曆年初一' },
+      { date: '2027-02-07', title: '農曆年初二' },
+      { date: '2027-02-08', title: '農曆年初三' },
+      { date: '2027-03-26', title: '耶穌受難節' },
+      { date: '2027-03-27', title: '耶穌受難節翌日' },
+      { date: '2027-03-29', title: '復活節星期一' },
+      { date: '2027-04-05', title: '清明節' },
+      { date: '2027-05-01', title: '勞動節' },
+      { date: '2027-05-13', title: '佛誕' },
+      { date: '2027-06-09', title: '端午節' },
+      { date: '2027-07-01', title: '香港特別行政區成立紀念日' },
+      { date: '2027-09-16', title: '中秋節翌日' },
+      { date: '2027-10-01', title: '國慶日' },
+      { date: '2027-10-08', title: '重陽節' },
+      { date: '2027-12-25', title: '聖誕節' },
+      { date: '2027-12-27', title: '聖誕節後第一個周日' }
+    ];
+
     // Comprehensive MTR Station Database (All 10 Heavy Rail Lines)
     const MTR_LINES = [
       { code: 'TML', name: '屯馬綫 (Tuen Ma Line)', stations: [
@@ -374,8 +476,9 @@
 
     const DEFAULT_CONFIG = {
       weatherStation: '京士柏',
-      countdownTitle: '中秋節翌日',
-      countdownDate: '2026-09-26',
+      countdownMode: 'AUTO_HK', // 'AUTO_HK', 'SELECT_HK', or 'CUSTOM'
+      countdownTitle: '',
+      countdownDate: '',
       routes: [
         {
           id: 'route-1',
@@ -432,7 +535,7 @@
       ]
     };
 
-    let appConfig = JSON.parse(localStorage.getItem('hk_dashboard_config_v3')) || DEFAULT_CONFIG;
+    let appConfig = JSON.parse(localStorage.getItem('hk_dashboard_config_v4')) || DEFAULT_CONFIG;
     let selectedOperator = 'KMB';
     let fetchedBusRoutes = [];
 
@@ -473,18 +576,66 @@
       updateCountdown();
     }
 
+    // --- AUTOMATIC HK PUBLIC HOLIDAY COUNTDOWN ---
+    function getNextHkHoliday() {
+      const today = new Date();
+      // Set to midnight for accurate day comparison
+      const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      for (const h of HK_PUBLIC_HOLIDAYS) {
+        const parts = h.date.split('-');
+        const hDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        if (hDate >= todayZero) {
+          return h;
+        }
+      }
+      return { date: '2027-12-25', title: '聖誕節' };
+    }
+
     function updateCountdown() {
-      const title = appConfig.countdownTitle || '節日倒數';
-      const targetStr = appConfig.countdownDate || '2026-09-26';
-      
+      const mode = appConfig.countdownMode || 'AUTO_HK';
+      let title = '';
+      let targetStr = '';
+      let badgeText = '自動追蹤';
+
+      if (mode === 'AUTO_HK') {
+        const nextHoliday = getNextHkHoliday();
+        title = nextHoliday.title;
+        targetStr = nextHoliday.date;
+        badgeText = '香港公眾假期 (自動)';
+      } else if (mode === 'SELECT_HK') {
+        title = appConfig.countdownTitle || '香港假期';
+        targetStr = appConfig.countdownDate || getNextHkHoliday().date;
+        badgeText = '指定公眾假期';
+      } else {
+        title = appConfig.countdownTitle || '自訂倒數';
+        targetStr = appConfig.countdownDate || '2026-12-31';
+        badgeText = '自訂倒數';
+      }
+
       document.getElementById('countdownTitle').textContent = title;
+      document.getElementById('countdownLabel').textContent = badgeText;
 
       const now = new Date();
-      const target = new Date(targetStr);
-      const diffTime = target - now;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      const parts = targetStr.split('-');
+      const targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      
+      const diffTime = targetDate - todayZero;
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-      document.getElementById('countdownDays').textContent = diffDays > 0 ? diffDays : 0;
+      const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+      const targetWeek = weekDays[targetDate.getDay()];
+      document.getElementById('countdownSubdate').textContent = `${parts[0]}年${parts[1]}月${parts[2]}日 (星期${targetWeek})`;
+
+      if (diffDays === 0) {
+        document.getElementById('countdownDays').textContent = '今';
+      } else if (diffDays > 0) {
+        document.getElementById('countdownDays').textContent = diffDays;
+      } else {
+        document.getElementById('countdownDays').textContent = 0;
+      }
     }
 
     // --- HKO WEATHER API INTEGRATION ---
@@ -637,7 +788,6 @@
       try {
         const stopId = route.stopId;
         const routeNo = route.routeNo;
-        // Using official Citybus V2 API endpoint on rt.data.gov.hk
         const res = await fetch(`https://rt.data.gov.hk/v2/transport/citybus/eta/ctb/${stopId}/${routeNo}`);
         const data = await res.json();
 
@@ -711,16 +861,46 @@
       const modal = document.getElementById(id);
       modal.classList.remove('hidden');
 
-      document.getElementById('inputCountdownTitle').value = appConfig.countdownTitle || '';
-      document.getElementById('inputCountdownDate').value = appConfig.countdownDate || '';
       document.getElementById('selectWeatherStation').value = appConfig.weatherStation || '京士柏';
+      document.getElementById('selectCountdownMode').value = appConfig.countdownMode || 'AUTO_HK';
 
+      // Populate HK Holiday selector dropdown
+      const holidaySelect = document.getElementById('selectHkHolidayDropdown');
+      holidaySelect.innerHTML = '';
+      HK_PUBLIC_HOLIDAYS.forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify({ title: h.title, date: h.date });
+        opt.textContent = `${h.date} - ${h.title}`;
+        holidaySelect.appendChild(opt);
+      });
+
+      toggleCountdownInputMode();
       renderModalRouteList();
       preloadBusRoutes(selectedOperator);
     }
 
+    function toggleCountdownInputMode() {
+      const mode = document.getElementById('selectCountdownMode').value;
+      const holidaySelect = document.getElementById('selectHkHolidayDropdown');
+      const customFields = document.getElementById('customCountdownFields');
+
+      if (mode === 'AUTO_HK') {
+        holidaySelect.classList.add('hidden');
+        customFields.classList.add('hidden');
+      } else if (mode === 'SELECT_HK') {
+        holidaySelect.classList.remove('hidden');
+        customFields.classList.add('hidden');
+      } else if (mode === 'CUSTOM') {
+        holidaySelect.classList.add('hidden');
+        customFields.classList.remove('hidden');
+        document.getElementById('inputCountdownTitle').value = appConfig.countdownTitle || '';
+        document.getElementById('inputCountdownDate').value = appConfig.countdownDate || '';
+      }
+    }
+
     function closeModal(id) {
       document.getElementById(id).classList.add('hidden');
+      document.getElementById('modalAlertBox').classList.add('hidden');
     }
 
     function selectOperator(op) {
@@ -905,13 +1085,22 @@
       });
     }
 
+    function showModalAlert(msg) {
+      const alertBox = document.getElementById('modalAlertBox');
+      alertBox.textContent = msg;
+      alertBox.classList.remove('hidden');
+      setTimeout(() => {
+        alertBox.classList.add('hidden');
+      }, 3500);
+    }
+
     function addSelectedRoute() {
       if (selectedOperator === 'KMB' || selectedOperator === 'CTB') {
         const routeVal = document.getElementById('routeSelectDropdown').value;
         const stopVal = document.getElementById('stopSelectDropdown').value;
 
         if (!routeVal || !stopVal) {
-          alert('請先搜尋並選擇路線與上車站點！');
+          showModalAlert('請先搜尋並選擇路線與上車站點！');
           return;
         }
 
@@ -986,16 +1175,30 @@
     }
 
     function saveSettings() {
-      appConfig.countdownTitle = document.getElementById('inputCountdownTitle').value;
-      appConfig.countdownDate = document.getElementById('inputCountdownDate').value;
+      const mode = document.getElementById('selectCountdownMode').value;
+      appConfig.countdownMode = mode;
+
+      if (mode === 'SELECT_HK') {
+        const selectedVal = document.getElementById('selectHkHolidayDropdown').value;
+        if (selectedVal) {
+          const parsed = JSON.parse(selectedVal);
+          appConfig.countdownTitle = parsed.title;
+          appConfig.countdownDate = parsed.date;
+        }
+      } else if (mode === 'CUSTOM') {
+        appConfig.countdownTitle = document.getElementById('inputCountdownTitle').value;
+        appConfig.countdownDate = document.getElementById('inputCountdownDate').value;
+      }
+
       appConfig.weatherStation = document.getElementById('selectWeatherStation').value;
 
-      localStorage.setItem('hk_dashboard_config_v3', JSON.stringify(appConfig));
+      localStorage.setItem('hk_dashboard_config_v4', JSON.stringify(appConfig));
 
       closeModal('customModal');
       fetchWeatherData();
       renderRouteCards();
       fetchEtaData();
+      updateCountdown();
     }
 
     function toggleFullscreen() {
