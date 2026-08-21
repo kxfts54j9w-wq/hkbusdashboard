@@ -18,6 +18,7 @@
             kmb: '#e11d48',
             ctb: '#eab308',
             mtr: '#00508f',
+            mtrbus: '#a21caf',
             bgDark: '#0b0e14',
             cardDark: '#161b26'
           }
@@ -33,8 +34,6 @@
       width: 100vw;
       margin: 0;
       padding: 0;
-      touch-action: manipulation;
-      overscroll-behavior: none;
       background-color: #0b0e14;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       -webkit-user-select: none;
@@ -62,30 +61,30 @@
     }
   </style>
 </head>
-<body class="text-white min-h-screen md:h-full w-full flex flex-col justify-between p-2 sm:p-4 box-border overflow-y-auto md:overflow-hidden bg-bgDark">
+<body class="text-white min-h-screen md:h-screen w-full flex flex-col justify-between p-2 sm:p-4 box-border overflow-y-auto md:overflow-hidden">
 
   <!-- Header bar -->
-  <header class="flex justify-between items-center px-1 sm:px-2 py-1 mb-1 text-xs text-slate-400 shrink-0">
-    <div class="flex items-center gap-1.5 sm:gap-2">
+  <header class="flex justify-between items-center px-2 py-1 mb-2 text-xs text-slate-400 shrink-0">
+    <div class="flex items-center gap-2">
       <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse-fast"></span>
       <span id="liveStatusText" class="font-mono tracking-tight text-[11px] sm:text-xs">即時更新 (每15秒)</span>
     </div>
-    <div class="flex items-center gap-2 sm:gap-3">
-      <button onclick="toggleFullscreen()" class="hover:text-white p-1" title="全屏切換">
-        <i class="fa-solid font-bold fa-expand"></i>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleFullscreen()" class="hover:text-white p-1 text-slate-300" title="全屏切換">
+        <i class="fa-solid fa-expand"></i>
       </button>
-      <button onclick="openModal('customModal')" class="hover:text-white flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs transition border border-slate-700">
-        <i class="fa-solid fa-sliders text-[11px]"></i>
-        <span>自訂路線及天氣設定</span>
+      <button onclick="openModal('customModal')" class="hover:text-white flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded-full text-xs transition border border-slate-700 shadow-sm active:scale-95">
+        <i class="fa-solid fa-sliders text-amber-400 text-xs"></i>
+        <span>設定及路線</span>
       </button>
     </div>
   </header>
 
   <!-- Main Grid Layout -->
-  <main class="flex-1 grid grid-cols-1 md:grid-cols-12 gap-3 min-h-0 w-full overflow-y-auto md:overflow-hidden pb-4 md:pb-0">
+  <main class="flex-1 grid grid-cols-1 md:grid-cols-12 gap-3 min-h-0 w-full mb-1">
     
-    <!-- Left Section: HKO Weather & Clock -->
-    <section class="md:col-span-5 lg:col-span-4 bg-cardDark rounded-2xl p-3 sm:p-4 flex flex-col justify-between border border-slate-800 shadow-2xl overflow-y-auto custom-scrollbar shrink-0 max-h-full">
+    <!-- Left Section: Weather & Holiday Countdown & Clock -->
+    <section class="md:col-span-5 lg:col-span-4 bg-cardDark rounded-2xl p-4 flex flex-col justify-between border border-slate-800 shadow-2xl overflow-y-auto custom-scrollbar gap-3">
       <div>
         <div class="flex justify-between items-center text-slate-300 font-medium mb-1">
           <div class="flex items-center gap-2 text-xs sm:text-sm">
@@ -99,110 +98,114 @@
 
         <div class="flex justify-between items-center my-1 sm:my-2">
           <div>
-            <div id="currentTemp" class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight font-mono text-white">
+            <div id="currentTemp" class="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight font-mono text-white">
               --.-°C
             </div>
-            <div id="humidity" class="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-200 mt-1 font-mono">
+            <div id="humidity" class="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-300 mt-0.5 font-mono">
               --%
             </div>
           </div>
-          <div class="flex flex-col items-center justify-center min-w-[70px] sm:min-w-[80px]">
+          <div class="flex flex-col items-center justify-center min-w-[70px]">
             <img id="weatherIcon" src="https://www.hko.gov.hk/images/HKOWxIconOutline/pic50.png" alt="Weather Icon" class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md" onerror="this.onerror=null; this.src='https://placehold.co/80x80/000000/FFF?text=HKO';">
           </div>
         </div>
 
-        <div class="space-y-1 mt-1 sm:mt-2">
-          <div class="flex items-center gap-2 flex-wrap">
+        <div class="space-y-1 mt-1">
+          <div class="flex items-center gap-2">
             <h2 id="stationName" class="text-xl sm:text-2xl font-bold tracking-wide text-slate-100">京士柏</h2>
-            <span id="warningBadge" class="hidden text-[10px] sm:text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">天氣警告</span>
+            <span id="warningBadge" class="hidden text-[10px] sm:text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">天氣警告</span>
           </div>
           <p id="uvIndex" class="text-xs sm:text-sm text-slate-300">紫外線指數: <span class="font-semibold">--</span></p>
         </div>
       </div>
 
-      <!-- Expanded Prominent Countdown Section (Optimized for iPhone / Mobile) -->
-      <div class="my-2 sm:my-3 bg-gradient-to-br from-amber-950/70 via-amber-900/40 to-slate-900/90 border border-amber-500/40 rounded-xl p-3 sm:p-3.5 shadow-lg relative overflow-hidden">
-        <!-- Background Decorative Icon positioned safely at bottom right -->
-        <div class="absolute -bottom-2 -right-2 text-amber-500/10 text-6xl sm:text-7xl font-black pointer-events-none select-none z-0">
-          <i class="fa-solid fa-calendar-days"></i>
-        </div>
-
-        <div class="relative z-10">
-          <div class="flex items-center justify-between gap-1 mb-1 flex-wrap">
-            <div class="flex items-center gap-1.5 text-[11px] sm:text-xs text-amber-300 font-bold uppercase tracking-wider min-w-0">
-              <i class="fa-solid fa-plane-departure text-amber-400 shrink-0"></i>
-              <span id="countdownLabel" class="truncate">香港公眾假期 (自動)</span>
+      <!-- Enlarged High-Contrast Hong Kong Holiday Countdown Card -->
+      <div class="my-1.5 w-full">
+        <div class="relative overflow-hidden bg-gradient-to-br from-amber-500/20 via-orange-900/40 to-slate-900 border-2 border-amber-500/50 rounded-2xl p-3.5 sm:p-4 shadow-xl">
+          <div class="flex justify-between items-center mb-1">
+            <div class="flex items-center gap-1.5 text-amber-400 font-bold text-xs uppercase tracking-wider">
+              <i class="fa-solid fa-plane-departure text-amber-400"></i>
+              <span id="countdownBadgeMode">香港公眾假期 (自動)</span>
             </div>
-            <span id="autoBadge" class="text-[9px] sm:text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded shrink-0">自動追蹤</span>
+            <span class="text-[10px] bg-amber-500/30 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/40 font-semibold" id="countdownTypeLabel">自動追蹤</span>
           </div>
 
-          <div class="mt-1">
-            <h3 id="countdownTitle" class="text-lg sm:text-2xl font-black text-white tracking-wide truncate">
-              --
-            </h3>
-            <p id="countdownSubdate" class="text-[11px] sm:text-xs text-amber-200/80 font-medium mt-0.5">
-              ----年--月--日
-            </p>
-          </div>
+          <div class="flex justify-between items-end gap-2 mt-1">
+            <div class="min-w-0 flex-1">
+              <h3 id="countdownTitle" class="text-xl sm:text-2xl font-black text-white tracking-tight truncate leading-tight">
+                加載中...
+              </h3>
+              <p id="countdownDateSub" class="text-xs text-amber-200/80 font-mono mt-0.5">
+                ----年--月--日 (星期-)
+              </p>
+              <div class="text-[11px] text-slate-400 mt-2 font-medium">
+                距離放假還有
+              </div>
+            </div>
 
-          <div class="mt-2 pt-2 border-t border-amber-500/20 flex items-baseline justify-between">
-            <span class="text-xs text-slate-300 font-semibold shrink-0">距離放假還有</span>
-            <div class="flex items-baseline gap-1 shrink-0">
-              <span id="countdownDays" class="text-4xl sm:text-6xl font-black font-mono text-amber-400 drop-shadow-md">--</span>
-              <span class="text-base sm:text-lg font-extrabold text-amber-300">天</span>
+            <div class="text-right shrink-0">
+              <div class="flex items-baseline justify-end gap-1">
+                <span id="countdownDays" class="text-4xl sm:text-5xl lg:text-6xl font-black font-mono text-amber-400 tracking-tight leading-none drop-shadow">
+                  --
+                </span>
+                <span class="text-base sm:text-lg font-bold text-amber-300">天</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Clock Area -->
       <div class="pt-2 border-t border-slate-800/80 flex flex-col items-start justify-end">
         <div id="clockDisplay" class="text-4xl sm:text-5xl lg:text-6xl font-extrabold font-mono tracking-wider text-white">
           00:00:00
         </div>
-        <div id="dateDisplay" class="mt-1 bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 px-2.5 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-semibold tracking-wide">
+        <div id="dateDisplay" class="mt-1 bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 px-3 py-1 rounded-md text-xs sm:text-sm font-semibold tracking-wide">
           ----年--月--日(--)
         </div>
       </div>
     </section>
 
     <!-- Right Section: Transport Arrival Times List -->
-    <section class="md:col-span-7 lg:col-span-8 flex flex-col bg-cardDark rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[300px] md:min-h-0">
-      <div class="bg-red-800 px-3 sm:px-4 py-2.5 flex justify-between items-center shrink-0">
+    <section class="md:col-span-7 lg:col-span-8 flex flex-col bg-cardDark rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[350px] md:min-h-0">
+      <div class="bg-red-800 px-4 py-2.5 flex justify-between items-center shrink-0 shadow">
         <div class="flex items-center gap-2">
-          <h1 class="text-lg sm:text-xl font-extrabold text-white tracking-wide">到站時間</h1>
-          <span id="routeCountBadge" class="bg-black/30 text-white text-[11px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full font-medium">0 條路線</span>
+          <h1 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left"></i> 即時到站時間
+          </h1>
+          <span id="routeCountBadge" class="bg-black/30 text-white text-[11px] px-2.5 py-0.5 rounded-full font-medium">0 條路線</span>
         </div>
-        <div class="text-[11px] sm:text-xs text-red-100/80 font-medium">
+        <div class="text-xs text-red-100/90 font-mono font-medium">
           分鐘 min(s)
         </div>
       </div>
 
-      <div id="transitCardList" class="flex-1 p-2.5 sm:p-3 space-y-2.5 sm:space-y-3 overflow-y-auto custom-scrollbar">
-        <!-- Live Route Cards rendered here -->
+      <div id="transitCardList" class="flex-1 p-3 space-y-2.5 overflow-y-auto custom-scrollbar">
+        <!-- Live Route Cards Rendered dynamically -->
       </div>
     </section>
 
   </main>
 
   <!-- Configuration Modal -->
-  <div id="customModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xl max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden">
+  <div id="customModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
       
-      <div class="p-3.5 sm:p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950 shrink-0">
-        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-bus text-amber-400"></i> 自訂香港巴士,重鐵及天氣
+      <div class="p-3.5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-amber-400"></i> 自訂 Dashboard 設定
         </h3>
-        <button onclick="closeModal('customModal')" class="text-slate-400 hover:text-white p-1 text-xl">
+        <button onclick="closeModal('customModal')" class="text-slate-400 hover:text-white p-1 text-lg">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <div class="p-3.5 sm:p-4 overflow-y-auto space-y-4 sm:space-y-5 custom-scrollbar text-xs sm:text-sm">
+      <div class="p-3.5 sm:p-4 overflow-y-auto space-y-4 custom-scrollbar text-xs sm:text-sm">
         
-        <!-- Weather Station & Event Config -->
+        <!-- Weather Station & Holiday Config -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700">
-            <h4 class="font-bold text-slate-200 mb-2 flex items-center gap-2 text-xs">
+            <h4 class="font-bold text-slate-200 mb-1.5 flex items-center gap-1.5 text-xs">
               <i class="fa-solid fa-cloud-sun text-amber-400"></i> 天文台氣象站
             </h4>
             <select id="selectWeatherStation" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
@@ -220,103 +223,109 @@
           </div>
 
           <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700">
-            <h4 class="font-bold text-slate-200 mb-2 flex items-center gap-2 text-xs">
-              <i class="fa-solid fa-calendar-check text-amber-400"></i> 倒數模式設定
+            <h4 class="font-bold text-slate-200 mb-1.5 flex items-center gap-1.5 text-xs">
+              <i class="fa-solid fa-calendar-star text-amber-400"></i> 倒數模式設定
             </h4>
-            <div class="space-y-1.5">
-              <select id="selectCountdownMode" onchange="toggleCountdownInputMode()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
-                <option value="AUTO_HK">🤖 自動追蹤下個香港公眾假期</option>
-                <option value="SELECT_HK">📅 選擇指定香港公眾假期</option>
-                <option value="CUSTOM">✏️ 完全自訂日期與名稱</option>
-              </select>
+            <select id="selectCountdownMode" onchange="onCountdownModeChange()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 mb-2">
+              <option value="AUTO_HK_HOLIDAY">🎉 自動追蹤下一個香港公眾假期</option>
+              <option value="SELECT_HOLIDAY">📅 指定特定香港公眾假期</option>
+              <option value="CUSTOM">✍️ 自訂倒數名稱及日期</option>
+            </select>
 
-              <!-- Dropdown for HK holidays -->
-              <select id="selectHkHolidayDropdown" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white hidden">
-                <!-- Dynamic choices populated in JS -->
+            <div id="holidaySelectWrap" class="hidden mb-1.5">
+              <select id="selectSpecificHoliday" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white">
+                <!-- Populated via JS -->
               </select>
+            </div>
 
-              <!-- Custom inputs -->
-              <div id="customCountdownFields" class="space-y-1 hidden">
-                <input type="text" id="inputCountdownTitle" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white" placeholder="自訂目標名稱 (如：生日/旅行)">
-                <input type="date" id="inputCountdownDate" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white">
-              </div>
+            <div id="customCountdownInputs" class="space-y-1.5 hidden">
+              <input type="text" id="inputCountdownTitle" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white" placeholder="例如：自訂紀念日 / 考試">
+              <input type="date" id="inputCountdownDate" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white">
             </div>
           </div>
         </div>
 
-        <!-- Add New Transit Route with Search and Selector -->
-        <div class="bg-slate-800/80 p-3 sm:p-3.5 rounded-xl border border-amber-500/30 space-y-3">
+        <!-- Add New Transit Route Search Container -->
+        <div class="bg-slate-800/80 p-3 rounded-xl border border-amber-500/30 space-y-2.5">
           <div class="flex justify-between items-center border-b border-slate-700/80 pb-2">
             <h4 class="font-bold text-amber-400 flex items-center gap-1.5 text-xs sm:text-sm">
-              <i class="fa-solid fa-magnifying-glass"></i> 搜尋及新增路線
+              <i class="fa-solid fa-magnifying-glass"></i> 搜尋及新增公共交通路線
             </h4>
-            <span class="text-[10px] sm:text-[11px] text-slate-400">九巴/城巴/港鐵巴士/重鐵</span>
           </div>
 
-          <!-- Transport Operator Tabs (4 column mobile grid) -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-slate-950 p-1 rounded-lg text-center text-[11px] sm:text-xs">
-            <button id="tab-KMB" onclick="selectOperator('KMB')" class="py-1.5 rounded font-bold transition bg-rose-600 text-white">九巴/龍運</button>
-            <button id="tab-CTB" onclick="selectOperator('CTB')" class="py-1.5 rounded font-bold transition text-slate-400 hover:text-white">城巴 CTB</button>
-            <button id="tab-MTRBUS" onclick="selectOperator('MTRBUS')" class="py-1.5 rounded font-bold transition text-slate-400 hover:text-white">港鐵巴士</button>
-            <button id="tab-MTR" onclick="selectOperator('MTR')" class="py-1.5 rounded font-bold transition text-slate-400 hover:text-white">港鐵重鐵</button>
+          <!-- Transport Operator Tabs (4 Options) -->
+          <div class="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-lg text-center text-xs">
+            <button id="tab-KMB" onclick="selectOperator('KMB')" class="py-1 rounded font-bold transition bg-rose-600 text-white text-[11px] sm:text-xs">九巴/龍運</button>
+            <button id="tab-CTB" onclick="selectOperator('CTB')" class="py-1 rounded font-bold transition text-slate-400 hover:text-white text-[11px] sm:text-xs">城巴 CTB</button>
+            <button id="tab-MTRBUS" onclick="selectOperator('MTRBUS')" class="py-1 rounded font-bold transition text-slate-400 hover:text-white text-[11px] sm:text-xs">港鐵巴士</button>
+            <button id="tab-MTR" onclick="selectOperator('MTR')" class="py-1 rounded font-bold transition text-slate-400 hover:text-white text-[11px] sm:text-xs">港鐵重鐵</button>
           </div>
 
-          <!-- Dynamic Search Section based on Operator -->
+          <!-- Bus Search Section (KMB / CTB) -->
           <div id="searchContainerBus" class="space-y-2">
             <div class="flex gap-2">
-              <input type="text" id="routeSearchInput" onkeyup="filterBusRoutes()" class="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400" placeholder="輸入號碼 (例如: 1A, 102, K51, 506, A21...)">
-              <button onclick="filterBusRoutes()" class="bg-amber-600 hover:bg-amber-500 px-3 py-1.5 rounded text-xs text-white font-bold shrink-0">
+              <input type="text" id="routeSearchInput" onkeyup="filterBusRoutes()" class="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400" placeholder="輸入路線號碼 (例如: 1A, 102, 68X, 968...)">
+              <button onclick="filterBusRoutes()" class="bg-amber-600 hover:bg-amber-500 px-3 py-1.5 rounded text-xs text-white font-bold">
                 搜尋
               </button>
             </div>
 
-            <!-- Route Result Selector -->
             <div>
-              <label class="text-[10px] sm:text-[11px] text-slate-400 block mb-1">選擇路線及方向：</label>
+              <label class="text-[11px] text-slate-400 block mb-1">選擇路線及方向：</label>
               <select id="routeSelectDropdown" onchange="onRouteSelected()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
                 <option value="">-- 請先輸入路線號碼搜尋 --</option>
               </select>
             </div>
 
-            <!-- Stop Result Selector -->
             <div>
-              <label class="text-[10px] sm:text-[11px] text-slate-400 block mb-1">選擇上車站點：</label>
+              <label class="text-[11px] text-slate-400 block mb-1">選擇上車站點：</label>
               <select id="stopSelectDropdown" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
                 <option value="">-- 請先選擇路線 --</option>
               </select>
             </div>
           </div>
 
-          <!-- Search Section for MTR Heavy Rail -->
+          <!-- MTR Bus Search Section -->
+          <div id="searchContainerMTRBus" class="space-y-2 hidden">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">選擇港鐵巴士路線：</label>
+              <select id="mtrBusRouteSelect" onchange="onMtrBusRouteSelected()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">選擇上車站點 (已完整對照中文站名)：</label>
+              <select id="mtrBusStopSelect" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                <option value="">載入分站中...</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MTR Heavy Rail Search Section -->
           <div id="searchContainerMTR" class="space-y-2 hidden">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
-                <label class="text-[10px] sm:text-[11px] text-slate-400 block mb-1">選擇綫路：</label>
+                <label class="text-[11px] text-slate-400 block mb-1">選擇綫路：</label>
                 <select id="mtrLineSelect" onchange="onMtrLineChange()" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white">
-                  <!-- MTR Lines populated via JS -->
                 </select>
               </div>
               <div>
-                <label class="text-[10px] sm:text-[11px] text-slate-400 block mb-1">選擇車站：</label>
+                <label class="text-[11px] text-slate-400 block mb-1">選擇車站：</label>
                 <select id="mtrStationSelect" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white">
-                  <!-- MTR Stations populated via JS -->
                 </select>
               </div>
               <div>
-                <label class="text-[10px] sm:text-[11px] text-slate-400 block mb-1">往方向/終點：</label>
+                <label class="text-[11px] text-slate-400 block mb-1">往方向/終點：</label>
                 <select id="mtrBoundSelect" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white">
-                  <option value="DOWN">下行 (DOWN / 往屯門/堅尼地城/金鐘/香港...)</option>
-                  <option value="UP">上行 (UP / 往烏溪沙/柴灣/羅湖/荃灣...)</option>
+                  <option value="DOWN">下行 (往屯門/堅尼地城/金鐘/香港方向)</option>
+                  <option value="UP">上行 (往烏溪沙/柴灣/羅湖/荃灣方向)</option>
                 </select>
               </div>
             </div>
           </div>
 
-          <!-- Alert message box inside modal for clean notifications -->
-          <div id="modalAlertBox" class="hidden p-2 bg-rose-950/80 border border-rose-700 rounded text-rose-200 text-xs text-center font-bold">
-          </div>
-
-          <button onclick="addSelectedRoute()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs transition shadow-md">
+          <button onclick="addSelectedRoute()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs transition shadow-md active:scale-98">
             + 新增選定路線至首頁 Display
           </button>
         </div>
@@ -324,22 +333,22 @@
         <!-- Saved Routes Configurator -->
         <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 space-y-2">
           <div class="flex justify-between items-center">
-            <h4 class="font-bold text-slate-200 flex items-center gap-2 text-xs">
-              <i class="fa-solid fa-list text-emerald-400"></i> 已儲存顯示路線 (可刪除/重置)
+            <h4 class="font-bold text-slate-200 flex items-center gap-1.5 text-xs">
+              <i class="fa-solid fa-list text-emerald-400"></i> 已儲存顯示路線
             </h4>
-            <button onclick="addDefaultPresets()" class="text-[10px] sm:text-[11px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-200">
+            <button onclick="addDefaultPresets()" class="text-[11px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-200">
               重置為預設路線
             </button>
           </div>
 
-          <div id="modalRouteList" class="space-y-2 max-h-36 overflow-y-auto custom-scrollbar pr-1">
-            <!-- Dynamic edit entries -->
+          <div id="modalRouteList" class="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1">
+            <!-- Dynamic list items -->
           </div>
         </div>
 
       </div>
 
-      <div class="p-3 border-t border-slate-800 bg-slate-950 flex justify-end gap-2 shrink-0">
+      <div class="p-3 border-t border-slate-800 bg-slate-950 flex justify-end gap-2">
         <button onclick="closeModal('customModal')" class="bg-slate-700 hover:bg-slate-600 px-4 py-1.5 rounded text-slate-200 text-xs font-semibold">
           取消
         </button>
@@ -352,265 +361,267 @@
   </div>
 
   <script>
-    // Hong Kong General Public Holidays Database (2025, 2026, 2027)
+    // ==========================================
+    // 1. HONG KONG PUBLIC HOLIDAYS (2025 - 2027)
+    // ==========================================
     const HK_PUBLIC_HOLIDAYS = [
-      // 2025
-      { date: '2025-01-01', title: '一月一日 (元旦)' },
-      { date: '2025-01-29', title: '農曆年初一' },
-      { date: '2025-01-30', title: '農曆年初二' },
-      { date: '2025-01-31', title: '農曆年初三' },
-      { date: '2025-04-04', title: '清明節' },
-      { date: '2025-04-18', title: '耶穌受難節 (Good Friday)' },
-      { date: '2025-04-19', title: '耶穌受難節翌日' },
-      { date: '2025-04-21', title: '復活節星期一' },
-      { date: '2025-05-01', title: '勞動節' },
-      { date: '2025-05-05', title: '佛誕' },
-      { date: '2025-05-31', title: '端午節' },
-      { date: '2025-07-01', title: '香港特別行政區成立紀念日' },
-      { date: '2025-10-01', title: '國慶日' },
-      { date: '2025-10-07', title: '中秋節翌日' },
-      { date: '2025-10-29', title: '重陽節' },
-      { date: '2025-12-25', title: '聖誕節' },
-      { date: '2025-12-26', title: '聖誕節後第一個周日 (Boxing Day)' },
+      { name: "元旦", date: "2025-01-01" },
+      { name: "農曆年初一", date: "2025-01-29" },
+      { name: "農曆年初二", date: "2025-01-30" },
+      { name: "農曆年初三", date: "2025-01-31" },
+      { name: "清明節", date: "2025-04-04" },
+      { name: "耶穌受難節", date: "2025-04-18" },
+      { name: "耶穌受難節翌日", date: "2025-04-19" },
+      { name: "復活節星期一", date: "2025-04-21" },
+      { name: "勞動節", date: "2025-05-01" },
+      { name: "佛誕", date: "2025-05-05" },
+      { name: "端午節", date: "2025-05-31" },
+      { name: "香港特別行政區成立紀念日", date: "2025-07-01" },
+      { name: "國慶日", date: "2025-10-01" },
+      { name: "中秋節翌日", date: "2025-10-07" },
+      { name: "重陽節", date: "2025-10-29" },
+      { name: "聖誕節", date: "2025-12-25" },
+      { name: "聖誕節後第一個周日", date: "2025-12-26" },
 
-      // 2026
-      { date: '2026-01-01', title: '一月一日 (元旦)' },
-      { date: '2026-02-17', title: '農曆年初一' },
-      { date: '2026-02-18', title: '農曆年初二' },
-      { date: '2026-02-19', title: '農曆年初三' },
-      { date: '2026-04-03', title: '耶穌受難節 (Good Friday)' },
-      { date: '2026-04-04', title: '耶穌受難節翌日' },
-      { date: '2026-04-05', title: '清明節' },
-      { date: '2026-04-06', title: '復活節星期一' },
-      { date: '2026-05-01', title: '勞動節' },
-      { date: '2026-05-24', title: '佛誕' },
-      { date: '2026-06-19', title: '端午節' },
-      { date: '2026-07-01', title: '香港特別行政區成立紀念日' },
-      { date: '2026-09-26', title: '中秋節翌日' },
-      { date: '2026-10-01', title: '國慶日' },
-      { date: '2026-10-18', title: '重陽節' },
-      { date: '2026-12-25', title: '聖誕節' },
-      { date: '2026-12-26', title: '聖誕節後第一個周日 (Boxing Day)' },
+      { name: "元旦", date: "2026-01-01" },
+      { name: "農曆年初一", date: "2026-02-17" },
+      { name: "農曆年初二", date: "2026-02-18" },
+      { name: "農曆年初三", date: "2026-02-19" },
+      { name: "耶穌受難節", date: "2026-04-03" },
+      { name: "耶穌受難節翌日", date: "2026-04-04" },
+      { name: "清明節翌日", date: "2026-04-06" },
+      { name: "復活節星期一", date: "2026-04-06" },
+      { name: "勞動節", date: "2026-05-01" },
+      { name: "佛誕", date: "2026-05-24" },
+      { name: "端午節", date: "2026-06-19" },
+      { name: "香港特別行政區成立紀念日", date: "2026-07-01" },
+      { name: "中秋節翌日", date: "2026-09-26" },
+      { name: "國慶日", date: "2026-10-01" },
+      { name: "重陽節", date: "2026-10-19" },
+      { name: "聖誕節", date: "2026-12-25" },
+      { name: "聖誕節後第一個周日", date: "2026-12-26" },
 
-      // 2027
-      { date: '2027-01-01', title: '一月一日 (元旦)' },
-      { date: '2027-02-06', title: '農曆年初一' },
-      { date: '2027-02-07', title: '農曆年初二' },
-      { date: '2027-02-08', title: '農曆年初三' },
-      { date: '2027-03-26', title: '耶穌受難節' },
-      { date: '2027-03-27', title: '耶穌受難節翌日' },
-      { date: '2027-03-29', title: '復活節星期一' },
-      { date: '2027-04-05', title: '清明節' },
-      { date: '2027-05-01', title: '勞動節' },
-      { date: '2027-05-13', title: '佛誕' },
-      { date: '2027-06-09', title: '端午節' },
-      { date: '2027-07-01', title: '香港特別行政區成立紀念日' },
-      { date: '2027-09-16', title: '中秋節翌日' },
-      { date: '2027-10-01', title: '國慶日' },
-      { date: '2027-10-08', title: '重陽節' },
-      { date: '2027-12-25', title: '聖誕節' },
-      { date: '2027-12-27', title: '聖誕節後第一個周日' }
+      { name: "元旦", date: "2027-01-01" },
+      { name: "農曆年初一", date: "2027-02-06" },
+      { name: "農曆年初二", date: "2027-02-08" },
+      { name: "農曆年初三", date: "2027-02-09" },
+      { name: "清明節", date: "2027-04-05" },
+      { name: "耶穌受難節", date: "2027-03-26" },
+      { name: "復活節星期一", date: "2027-03-29" },
+      { name: "勞動節", date: "2027-05-01" },
+      { name: "佛誕", date: "2027-05-13" },
+      { name: "端午節", date: "2027-06-09" },
+      { name: "香港特別行政區成立紀念日", date: "2027-07-01" },
+      { name: "中秋節翌日", date: "2027-09-16" },
+      { name: "國慶日", date: "2027-10-01" },
+      { name: "重陽節", date: "2027-10-09" },
+      { name: "聖誕節", date: "2027-12-25" }
     ];
 
-    // Static List of Popular MTR Bus Routes
-    const MTR_BUS_ROUTES_PRESET = [
-      { route: 'K51', orig_tc: '富泰', dest_tc: '掃管笏' },
-      { route: 'K51A', orig_tc: '富泰', dest_tc: '掃管笏(循環綫)' },
-      { route: 'K52', orig_tc: '屯門站', dest_tc: '龍鼓灘' },
+    // ==========================================
+    // 2. MTR BUS ROUTES & EXHAUSTIVE STATION MAP
+    // ==========================================
+    const MTR_BUS_ROUTES = [
+      { route: 'K51', orig_tc: '富泰', dest_tc: '大欖' },
+      { route: 'K51A', orig_tc: '富泰', dest_tc: '掃管笏' },
+      { route: 'K52', orig_tc: '悅湖山莊', dest_tc: '屯門站' },
       { route: 'K52A', orig_tc: '屯門站', dest_tc: '曾咀' },
-      { route: 'K52P', orig_tc: '龍鼓灘', dest_tc: '屯門站' },
-      { route: 'K53', orig_tc: '屯門站', dest_tc: '掃管笏(循環綫)' },
-      { route: 'K54', orig_tc: '和田邨', dest_tc: '屯門市中心(循環綫)' },
+      { route: 'K53', orig_tc: '屯門站', dest_tc: '掃管笏 (循環綫)' },
+      { route: 'K54', orig_tc: '和田邨', dest_tc: '屯門市中心 (循環綫)' },
       { route: 'K58', orig_tc: '富泰', dest_tc: '青山灣' },
-      { route: 'K65', orig_tc: '元朗站', dest_tc: '流浮山' },
+      { route: 'K65', orig_tc: '元朗東/元朗站', dest_tc: '流浮山' },
       { route: 'K65A', orig_tc: '天水圍站', dest_tc: '流浮山' },
-      { route: 'K66', orig_tc: '朗屏', dest_tc: '大棠' },
-      { route: 'K68', orig_tc: '元朗工業邨', dest_tc: '元朗公園(循環綫)' },
+      { route: 'K66', orig_tc: '朗屏', dest_tc: '大棠黃泥墩村' },
+      { route: 'K68', orig_tc: '元朗公園', dest_tc: '形點 (循環綫)' },
       { route: 'K73', orig_tc: '天恆', dest_tc: '元朗西' },
-      { route: 'K74', orig_tc: '天水圍市中心', dest_tc: '凹頭(循環綫)' },
-      { route: 'K75A', orig_tc: '天水圍站', dest_tc: '洪水橋(循環綫)' },
-      { route: 'K75P', orig_tc: '天瑞', dest_tc: '洪水橋(循環綫)' },
-      { route: 'K75S', orig_tc: '天水圍站', dest_tc: '洪福邨(循環綫)' },
+      { route: 'K74', orig_tc: '天瑞', dest_tc: '凹頭 (循環綫)' },
+      { route: 'K75A', orig_tc: '天水圍站', dest_tc: '洪水橋 (循環綫)' },
+      { route: 'K75P', orig_tc: '天瑞', dest_tc: '洪水橋 (循環綫)' },
       { route: 'K76', orig_tc: '天恆', dest_tc: '天水圍站' },
-      { route: 'K76S', orig_tc: '濕地公園路', dest_tc: '天水圍站' },
-      { route: '506', orig_tc: '屯門碼頭', dest_tc: '兆麟(循環綫)' },
+      { route: '506', orig_tc: '屯門碼頭', dest_tc: '兆麟 (循環綫)' },
       { route: 'K12', orig_tc: '大埔墟站', dest_tc: '八號花園' },
-      { route: 'K14', orig_tc: '大埔超級城', dest_tc: '大埔墟站' },
-      { route: 'K17', orig_tc: '大埔墟站', dest_tc: '富善' },
-      { route: 'K18', orig_tc: '大埔墟站', dest_tc: '廣福' }
+      { route: 'K14', orig_tc: '大埔中心', dest_tc: '大埔墟站' },
+      { route: 'K17', orig_tc: '富善', dest_tc: '大埔墟站' },
+      { route: 'K18', orig_tc: '廣福', dest_tc: '大埔墟站' }
     ];
 
-    const MTR_BUS_STOP_NAMES = {
-      // K51 Downbound
-      'K51-D010': '富泰總站',
-      'K51-D020': '聚康山莊',
-      'K51-D030': '嶺南大學',
-      'K51-D040': '彩暉花園',
-      'K51-D050': '港鐵兆康站(南)',
-      'K51-D060': '輕鐵鳳地站',
-      'K51-D070': '景峰花園',
-      'K51-D080': '聖公會聖西門呂明才中學',
-      'K51-D090': '港鐵屯門站',
-      'K51-D100': '輕鐵市中心站',
-      'K51-D110': '屯門官立中學',
-      'K51-D120': '置樂花園',
-      'K51-D130': '青善遊樂場',
-      'K51-D140': '胡陳金枝中學',
-      'K51-D150': '三聖邨',
-      'K51-D160': '青山灣碼頭',
-      'K51-D170': '碧翠花園',
-      'K51-D180': '咖啡灣',
-      'K51-D190': '黃金泳灘',
-      'K51-D200': '香港黃金海岸',
-      'K51-D210': '愛琴海岸',
-      'K51-D220': '掃管笏 / 大欖',
+    // Comprehensive Station Code mapping database
+    const MTR_BUS_STATION_MAP = {
+      // K65 stops
+      "K65-D010": "元朗站 (北) 公共運輸交匯處",
+      "K65-D020": "又新街 (大馬路)",
+      "K65-D030": "大棠路 (大馬路)",
+      "K65-D040": "康樂路 (大馬路)",
+      "K65-D050": "水邊圍邨 (水邊圍站)",
+      "K65-D060": "朗庭園 (青山公路)",
+      "K65-D070": "屏山 (屏山站)",
+      "K65-D080": "塘坊村站",
+      "K65-D090": "灰沙圍",
+      "K65-D100": "洪水橋站",
+      "K65-D110": "洪天路",
+      "K65-D120": "石埗村",
+      "K65-D130": "沙江圍",
+      "K65-D140": "盛祥路",
+      "K65-D150": "馮家圍",
+      "K65-D160": "輞井村",
+      "K65-D170": "新慶村",
+      "K65-D180": "沙江村天后廟",
+      "K65-D190": "流浮山公立學校",
+      "K65-D200": "流浮山 (總站)",
+      "K65-U010": "流浮山 (總站)",
+      "K65-U020": "流浮山公立學校",
+      "K65-U030": "沙江村天后廟",
+      "K65-U040": "新慶村",
+      "K65-U050": "輞井村",
+      "K65-U060": "馮家圍",
+      "K65-U070": "盛祥路",
+      "K65-U080": "沙江圍",
+      "K65-U090": "石埗村",
+      "K65-U100": "洪天路",
+      "K65-U110": "洪水橋站",
+      "K65-U120": "灰沙圍",
+      "K65-U130": "塘坊村站",
+      "K65-U140": "屏山",
+      "K65-U150": "水邊圍邨",
+      "K65-U160": "元朗廣場",
+      "K65-U170": "同樂街",
+      "K65-U180": "谷亭街",
+      "K65-U190": "元朗站 (東)",
 
-      // K51 Upbound
-      'K51-U010': '大欖 / 掃管笏',
-      'K51-U020': '愛琴海岸',
-      'K51-U030': '香港黃金海岸',
-      'K51-U040': '黃金泳灘',
-      'K51-U050': '咖啡灣',
-      'K51-U060': '碧翠花園',
-      'K51-U070': '青山灣碼頭',
-      'K51-U080': '三聖邨',
-      'K51-U090': '胡陳金枝中學',
-      'K51-U100': '青善遊樂場',
-      'K51-U110': '置樂花園',
-      'K51-U120': '屯門官立中學',
-      'K51-U130': '輕鐵市中心站',
-      'K51-U140': '港鐵屯門站',
-      'K51-U150': '聖公會聖西門呂明才中學',
-      'K51-U160': '景峰花園',
-      'K51-U170': '輕鐵鳳地站',
-      'K51-U180': '港鐵兆康站(南)',
-      'K51-U190': '彩暉花園',
-      'K51-U200': '嶺南大學',
-      'K51-U210': '聚康山莊',
-      'K51-U220': '富泰總站',
+      // K51 stops
+      "K51-D010": "富泰 (總站)",
+      "K51-D020": "嶺南大學",
+      "K51-D030": "彩暉花園",
+      "K51-D040": "兆康苑兆賢閣",
+      "K51-D050": "屯門醫院",
+      "K51-D060": "兆康站 (南)",
+      "K51-D070": "景峰花園",
+      "K51-D080": "屯門景新臺",
+      "K51-D090": "新墟街市",
+      "K51-D100": "屯門市中心",
+      "K51-D110": "屯門官立中學",
+      "K51-D120": "恆順園",
+      "K51-D130": "恆豐園",
+      "K51-D140": "三聖",
+      "K51-D150": "青山灣",
+      "K51-D160": "海華路",
+      "K51-D170": "碧翠花園",
+      "K51-D180": "青山灣碼頭",
+      "K51-D190": "咖啡灣",
+      "K51-D200": "香港黃金海岸",
+      "K51-D210": "掃管笏變電站",
+      "K51-D220": "愛琴海岸",
+      "K51-D230": "嘉和里村",
+      "K51-D240": "小秀村",
+      "K51-D250": "龍珠島",
+      "K51-D260": "大欖 (總站)",
 
-      // 506
-      '506-D010': '屯門碼頭',
-      '506-D020': '美樂花園',
-      '506-D030': '輕鐵蝴蝶站',
-      '506-D040': '輕鐵車廠站',
-      '506-D050': '龍門居',
-      '506-D060': '輕鐵青雲站',
-      '506-D070': '聖公會聖西門呂明才中學',
-      '506-D080': '港鐵屯門站',
-      '506-D090': '輕鐵市中心站',
-      '506-D100': '屯門官立中學',
-      '506-D110': '兆麟 / 安定',
+      "K51-U010": "大欖 (總站)",
+      "K51-U020": "龍珠島",
+      "K51-U030": "小秀村",
+      "K51-U040": "嘉和里村",
+      "K51-U050": "愛琴海岸",
+      "K51-U060": "掃管笏變電站",
+      "K51-U070": "香港黃金海岸",
+      "K51-U080": "咖啡灣",
+      "K51-U090": "青山灣碼頭",
+      "K51-U100": "碧翠花園",
+      "K51-U110": "海華路",
+      "K51-U120": "青山灣",
+      "K51-U130": "三聖",
+      "K51-U140": "恆豐園",
+      "K51-U150": "恆順園",
+      "K51-U160": "屯興路",
+      "K51-U170": "屯門市中心",
+      "K51-U180": "新墟街市",
+      "K51-U190": "景峰花園",
+      "K51-U200": "兆康站 (南)",
+      "K51-U210": "屯門醫院",
+      "K51-U220": "彩暉花園",
+      "K51-U230": "嶺南大學",
+      "K51-U240": "富泰 (總站)",
 
-      '506-U010': '兆麟 / 安定',
-      '506-U020': '屯門官立中學',
-      '506-U030': '輕鐵市中心站',
-      '506-U040': '港鐵屯門站',
-      '506-U050': '聖公會聖西門呂明才中學',
-      '506-U060': '輕鐵青雲站',
-      '506-U070': '龍門居',
-      '506-U080': '輕鐵車廠站',
-      '506-U090': '輕鐵蝴蝶站',
-      '506-U100': '美樂花園',
-      '506-U110': '屯門碼頭',
+      // K66 stops
+      "K66-D010": "朗屏邨悅屏樓",
+      "K66-D020": "惠州學校",
+      "K66-D030": "元朗廣場",
+      "K66-D040": "同樂街",
+      "K66-D050": "谷亭街",
+      "K66-D060": "千色廣場",
+      "K66-D070": "大棠路",
+      "K66-D080": "深涌村",
+      "K66-D090": "禮修村",
+      "K66-D100": "木橋頭村",
+      "K66-D110": "白沙村第一座",
+      "K66-D120": "白沙村口",
+      "K66-D130": "逸林首府",
+      "K66-D140": "黃泥墩村 (大棠)",
 
-      // K76
-      'K76-D010': '天恆邨',
-      'K76-D020': '天逸邨逸潭樓',
-      'K76-D030': '天富苑欣富閣',
-      'K76-D040': '天恩邨',
-      'K76-D050': '天水圍站',
-      'K76-U010': '天水圍站',
-      'K76-U020': '天恩邨',
-      'K76-U030': '天富苑',
-      'K76-U040': '天逸邨',
-      'K76-U050': '天恆邨',
+      // K73 stops
+      "K73-D010": "天恆邨總站",
+      "K73-D020": "天逸邨逸潭樓",
+      "K73-D030": "天富苑欣富閣",
+      "K73-D040": "天悅邨",
+      "K73-D050": "天晴邨晴彩樓",
+      "K73-D060": "天晴邨晴雲樓",
+      "K73-D070": "天慈邨",
+      "K73-D080": "朗屏邨珠屏樓",
+      "K73-D090": "朗屏邨總站",
+      "K73-D100": "鳳池村",
+      "K73-D110": "水邊圍邨",
+      "K73-D120": "元朗廣場",
+      "K73-D130": "元朗(西)總站",
 
-      // K54
-      'K54-D010': '和田邨',
-      'K54-D020': '菁田邨',
-      'K54-D030': '紫田村',
-      'K54-D040': '欣田邨',
-      'K54-D050': '港鐵兆康站(北)',
-      'K54-D060': '紅橋',
-      'K54-D070': '屯門市中心',
-      'K54-D080': '屯門市廣場',
-      'K54-D090': '新墟街市',
-      'K54-D100': '港鐵兆康站(北)',
-      'K54-D110': '兆康苑',
-      'K54-D120': '欣寶路',
-      'K54-D130': '菁田邨',
-      'K54-D140': '和田邨',
+      // K76 stops
+      "K76-D010": "天恆邨總站",
+      "K76-D020": "天逸邨逸潭樓",
+      "K76-D030": "天富苑欣富閣",
+      "K76-D040": "天恩邨",
+      "K76-D050": "天瑞邨",
+      "K76-D060": "天水圍站 (總站)",
+      "K76-U010": "天水圍站 (總站)",
+      "K76-U020": "天盛苑",
+      "K76-U030": "天瑞邨",
+      "K76-U040": "天頌苑",
+      "K76-U050": "天富苑",
+      "K76-U060": "天恆邨總站",
 
-      // K66
-      'K66-D010': '朗屏邨',
-      'K66-D020': '元朗盲人安老院',
-      'K66-D030': '元朗廣場',
-      'K66-D040': '水邊圍邨',
-      'K66-D050': '元朗大會堂',
-      'K66-D060': '教育路郵政局',
-      'K66-D070': '嘉誠廣場',
-      'K66-D080': '千色匯 (元朗)',
-      'K66-D090': '蝶翠峰',
-      'K66-D100': '深涌村',
-      'K66-D110': '崇正新村',
-      'K66-D120': '水邊村',
-      'K66-D130': '大棠黃泥墩村',
-
-      // K52
-      'K52-D010': '屯門站 / 悅湖山莊',
-      'K52-D020': '三聖邨',
-      'K52-D030': '置樂花園',
-      'K52-D040': '屯門市中心',
-      'K52-D050': '港鐵屯門站',
-      'K52-D060': '輕鐵青雲站',
-      'K52-D070': '龍門居',
-      'K52-D080': '蝴蝶灣公園',
-      'K52-D090': '望后石',
-      'K52-D100': '內河碼頭',
-      'K52-D110': '環保園',
-      'K52-D120': '青山發電廠',
-      'K52-D130': '龍鼓灘',
-
-      // K65
-      'K65-D010': '元朗站',
-      'K65-D020': '元朗大馬路',
-      'K65-D030': '水邊圍',
-      'K65-D040': '坑尾村',
-      'K65-D050': '屏山',
-      'K65-D060': '塘坊村',
-      'K65-D070': '洪水橋',
-      'K65-D080': '沙江圍',
-      'K65-D090': '流浮山',
+      // 506 stops
+      "506-D010": "屯門碼頭 (總站)",
+      "506-D020": "美樂花園",
+      "506-D030": "蝴蝶站",
+      "506-D040": "輕鐵車廠",
+      "506-D050": "龍門站",
+      "506-D060": "富健花園",
+      "506-D070": "屯門站",
+      "506-D080": "市中心站",
+      "506-D090": "安定站",
+      "506-D100": "兆麟 (總站)",
 
       // K12 / K17 / K18
-      'K12-D010': '大埔墟站',
-      'K12-D020': '八號花園',
-      'K17-D010': '大埔墟站',
-      'K17-D020': '富善邨',
-      'K18-D010': '大埔墟站',
-      'K18-D020': '廣福邨'
+      "K12-D010": "大埔墟站",
+      "K12-D020": "大埔超級城",
+      "K12-D030": "八號花園",
+      "K17-D010": "富善邨",
+      "K17-D020": "大埔墟站",
+      "K18-D010": "廣福邨",
+      "K18-D020": "大埔墟站"
     };
 
-    function getMtrBusStopDisplayName(st, idx, routeObj) {
-      let apiName = st.busStopName || st.busStopName_tc || st.busStopNameTC || st.busStopNameZH || st.busStopLocation || st.busStopLocationName || st.busStopDescription || st.busStopTitle || st.busStopRemark;
-      if (apiName && typeof apiName === 'string' && apiName.trim() !== '' && apiName !== st.busStopId) {
-        return apiName.trim();
+    // Helper to get true station name
+    function getMtrBusStationName(stopId, routeName, fallbackName, seq) {
+      if (MTR_BUS_STATION_MAP[stopId]) {
+        return MTR_BUS_STATION_MAP[stopId];
       }
-
-      const stopId = st.busStopId;
-      if (MTR_BUS_STOP_NAMES[stopId]) {
-        return MTR_BUS_STOP_NAMES[stopId];
+      if (fallbackName && fallbackName !== stopId && !fallbackName.startsWith('分站') && fallbackName.trim() !== '') {
+        return fallbackName;
       }
-
-      if (routeObj) {
-        if (idx === 0) return `${routeObj.orig_tc || '起點總站'}`;
-      }
-
-      return `分站 ${idx + 1}`;
+      return `${routeName} 分站 ${seq || stopId.split('-')[1] || stopId}`;
     }
 
-    // Comprehensive MTR Station Database (All 10 Heavy Rail Lines)
+    // ==========================================
+    // 3. MTR HEAVY RAIL DATABASE
+    // ==========================================
     const MTR_LINES = [
       { code: 'TML', name: '屯馬綫 (Tuen Ma Line)', stations: [
         { code: 'WKS', name: '烏溪沙' }, { code: 'MOS', name: '馬鞍山' }, { code: 'HEO', name: '恆安' },
@@ -633,7 +644,7 @@
       { code: 'ISL', name: '港島綫 (Island Line)', stations: [
         { code: 'KET', name: '堅尼地城' }, { code: 'HKU', name: '香港大學' }, { code: 'SYP', name: '西營盤' },
         { code: 'SHW', name: '上環' }, { code: 'CEN', name: '中環' }, { code: 'ADM', name: '金鐘' },
-        { code: 'WAC', name: '灣仔' }, { code: 'CWB', name: '銅鑼灣' }, { code: 'TIH', name: '天後' },
+        { code: 'WAC', name: '灣仔' }, { code: 'CWB', name: '銅鑼灣' }, { code: 'TIH', name: '天后' },
         { code: 'FOH', name: '炮台山' }, { code: 'NOP', name: '北角' }, { code: 'QUB', name: '鰂魚涌' },
         { code: 'TAK', name: '太古' }, { code: 'SWH', name: '西灣河' }, { code: 'SKW', name: '筲箕灣' },
         { code: 'HFC', name: '杏花邨' }, { code: 'CHW', name: '柴灣' }
@@ -677,42 +688,12 @@
 
     const DEFAULT_CONFIG = {
       weatherStation: '京士柏',
-      countdownMode: 'AUTO_HK',
+      countdownMode: 'AUTO_HK_HOLIDAY',
       countdownTitle: '',
       countdownDate: '',
       routes: [
         {
           id: 'route-1',
-          type: 'KMB',
-          badgeText: '九巴 KMB',
-          routeNo: '81',
-          origin: '勵德邨',
-          dest: '禾輋',
-          stopId: '56C0E76887556A15',
-          boundDir: 'I'
-        },
-        {
-          id: 'route-2',
-          type: 'CTB',
-          badgeText: '城巴 CTB',
-          routeNo: '102',
-          origin: '美孚',
-          dest: '筲箕灣',
-          stopId: '001258',
-          boundDir: 'O'
-        },
-        {
-          id: 'route-3',
-          type: 'MTRBUS',
-          badgeText: '港鐵巴士',
-          routeNo: 'K51',
-          origin: '富泰',
-          dest: '掃管笏',
-          stopId: 'K51-D010',
-          boundDir: 'O'
-        },
-        {
-          id: 'route-4',
           type: 'KMB',
           badgeText: '九巴 KMB',
           routeNo: '68X',
@@ -722,7 +703,27 @@
           boundDir: 'O'
         },
         {
-          id: 'route-5',
+          id: 'route-2',
+          type: 'MTRBUS',
+          badgeText: '港鐵巴士',
+          routeNo: 'K65',
+          origin: '元朗站 (北)',
+          dest: '流浮山',
+          stopId: 'K65-D010',
+          boundDir: 'D'
+        },
+        {
+          id: 'route-3',
+          type: 'CTB',
+          badgeText: '城巴 CTB',
+          routeNo: '102',
+          origin: '美孚',
+          dest: '筲箕灣',
+          stopId: '001258',
+          boundDir: 'O'
+        },
+        {
+          id: 'route-4',
           type: 'MTR',
           badgeText: '港鐵 MTR',
           routeNo: '屯馬綫',
@@ -739,6 +740,7 @@
     let selectedOperator = 'KMB';
     let fetchedBusRoutes = [];
 
+    // --- INITIALIZATION ---
     window.onload = function() {
       initClock();
       fetchWeatherData();
@@ -751,7 +753,7 @@
       setInterval(fetchWeatherData, 300000);
     };
 
-    // --- CLOCK & HOLIDAY LOGIC ---
+    // --- CLOCK & HOLIDAY COUNTDOWN ---
     function initClock() {
       updateClock();
     }
@@ -772,69 +774,58 @@
 
       document.getElementById('dateDisplay').textContent = `${year}年${month}月${date}日(${weekDay})`;
 
-      updateCountdown();
+      updateHolidayCountdown(now);
     }
 
-    function getNextHkHoliday() {
-      const today = new Date();
-      const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-      for (const h of HK_PUBLIC_HOLIDAYS) {
-        const parts = h.date.split('-');
-        const hDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        if (hDate >= todayZero) {
-          return h;
-        }
-      }
-      return { date: '2027-12-25', title: '聖誕節' };
-    }
-
-    function updateCountdown() {
-      const mode = appConfig.countdownMode || 'AUTO_HK';
+    function updateHolidayCountdown(now) {
+      const mode = appConfig.countdownMode || 'AUTO_HK_HOLIDAY';
       let title = '';
-      let targetStr = '';
-      let badgeText = '自動追蹤';
+      let targetDateStr = '';
+      let badgeLabel = '公眾假期';
 
-      if (mode === 'AUTO_HK') {
-        const nextHoliday = getNextHkHoliday();
-        title = nextHoliday.title;
-        targetStr = nextHoliday.date;
-        badgeText = '香港假期 (自動)';
-      } else if (mode === 'SELECT_HK') {
-        title = appConfig.countdownTitle || '香港假期';
-        targetStr = appConfig.countdownDate || getNextHkHoliday().date;
-        badgeText = '指定公眾假期';
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      if (mode === 'AUTO_HK_HOLIDAY') {
+        const upcoming = HK_PUBLIC_HOLIDAYS.filter(h => h.date >= todayStr).sort((a, b) => new Date(a.date) - new Date(b.date));
+        if (upcoming.length > 0) {
+          const nextHoliday = upcoming[0];
+          title = nextHoliday.name;
+          targetDateStr = nextHoliday.date;
+          badgeLabel = '自動追蹤';
+          document.getElementById('countdownBadgeMode').textContent = '香港公眾假期 (自動)';
+        } else {
+          title = '新年假期';
+          targetDateStr = `${now.getFullYear() + 1}-01-01`;
+          badgeLabel = '自動追蹤';
+        }
+      } else if (mode === 'SELECT_HOLIDAY') {
+        title = appConfig.countdownTitle || '香港公眾假期';
+        targetDateStr = appConfig.countdownDate || '2026-09-26';
+        badgeLabel = '指定假期';
+        document.getElementById('countdownBadgeMode').textContent = '指定假期倒數';
       } else {
-        title = appConfig.countdownTitle || '自訂倒數';
-        targetStr = appConfig.countdownDate || '2026-12-31';
-        badgeText = '自訂倒數';
+        title = appConfig.countdownTitle || '自訂倒數日';
+        targetDateStr = appConfig.countdownDate || todayStr;
+        badgeLabel = '自訂倒數';
+        document.getElementById('countdownBadgeMode').textContent = '自訂倒數提醒';
       }
 
+      document.getElementById('countdownTypeLabel').textContent = badgeLabel;
       document.getElementById('countdownTitle').textContent = title;
-      document.getElementById('countdownLabel').textContent = badgeText;
 
-      const now = new Date();
-      const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
-      const parts = targetStr.split('-');
-      const targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      
-      const diffTime = targetDate - todayZero;
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      if (targetDateStr) {
+        const parts = targetDateStr.split('-');
+        const targetObj = new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
+        const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+        document.getElementById('countdownDateSub').textContent = `${parts[0]}年${parts[1]}月${parts[2]}日 (星期${weekDays[targetObj.getDay()]})`;
 
-      const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
-      const targetWeek = weekDays[targetDate.getDay()];
-      document.getElementById('countdownSubdate').textContent = `${parts[0]}年${parts[1]}月${parts[2]}日 (星期${targetWeek})`;
-
-      if (diffDays === 0) {
-        document.getElementById('countdownDays').textContent = '今';
-      } else if (diffDays > 0) {
-        document.getElementById('countdownDays').textContent = diffDays;
-      } else {
-        document.getElementById('countdownDays').textContent = 0;
+        const diffTime = targetObj.setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        document.getElementById('countdownDays').textContent = diffDays >= 0 ? diffDays : 0;
       }
     }
 
+    // --- HKO WEATHER API INTEGRATION ---
     async function fetchWeatherData() {
       try {
         const response = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
@@ -881,6 +872,7 @@
       }
     }
 
+    // --- ROUTE CARDS RENDERER ---
     function renderRouteCards() {
       const container = document.getElementById('transitCardList');
       container.innerHTML = '';
@@ -901,16 +893,16 @@
       if (route.type === 'CTB') {
         badgeBg = 'bg-amber-500 text-black';
       } else if (route.type === 'MTRBUS') {
-        badgeBg = 'bg-red-700 text-white';
+        badgeBg = 'bg-fuchsia-800 text-white';
       } else if (route.type === 'MTR') {
         badgeBg = 'bg-sky-800 text-white';
       }
 
       return `
         <div id="card-${route.id}" class="bg-white rounded-2xl p-3 sm:p-3.5 shadow-lg text-slate-900 flex justify-between items-center transition transform active:scale-[0.995]">
-          <div class="flex flex-col gap-1 pr-2 min-w-0">
+          <div class="flex flex-col gap-0.5 pr-2 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="${badgeBg} text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-md tracking-wider uppercase shrink-0">
+              <span class="${badgeBg} text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded tracking-wider uppercase shrink-0">
                 ${badgeLabel}
               </span>
               <span class="text-xl sm:text-2xl font-black tracking-tight font-sans text-slate-900 truncate">
@@ -925,7 +917,7 @@
 
           <div class="text-right shrink-0 min-w-[75px] sm:min-w-[90px]">
             <div id="eta-primary-${route.id}" class="text-2xl sm:text-3xl font-extrabold text-cyan-600 font-mono tracking-tight">
-              <i class="fa-solid fa-spinner animate-spin text-lg sm:text-xl text-slate-400"></i>
+              <i class="fa-solid fa-spinner animate-spin text-base text-slate-400"></i>
             </div>
             <div id="eta-secondary-${route.id}" class="text-[11px] sm:text-xs font-bold text-slate-400 font-mono h-4">
             </div>
@@ -934,6 +926,7 @@
       `;
     }
 
+    // --- FETCH REALTIME TRANSIT DATA ---
     async function fetchEtaData() {
       const routes = appConfig.routes || [];
 
@@ -1013,43 +1006,44 @@
 
     async function fetchMtrBusEta(route) {
       try {
-        const routeNo = route.routeNo;
-        const res = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule`, {
+        const routeName = route.routeNo;
+        const targetStopId = route.stopId;
+
+        const response = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ language: 'zh', routeName: routeNo })
+          body: JSON.stringify({
+            routeName: routeName,
+            language: 'zh'
+          })
         });
-        const data = await res.json();
 
-        if (data && data.busStop && Array.isArray(data.busStop)) {
-          let minsList = [];
-          // 精確尋找指定站點 ID，若找不到則嘗試站名匹配或降級回第一個站點
-          const targetStop = data.busStop.find(s => s.busStopId === route.stopId) || 
-                             data.busStop.find(s => (s.busStopName || s.busStopRemark || '').includes(route.origin)) || 
-                             data.busStop[0];
+        const data = await response.json();
+        
+        if (data && (data.busStop || data.busStopList)) {
+          const stopList = data.busStop || data.busStopList || [];
+          const matchedStop = stopList.find(s => s.busStopId === targetStopId || s.busStopCode === targetStopId);
 
-          if (targetStop && targetStop.bus && Array.isArray(targetStop.bus)) {
-            targetStop.bus.forEach(b => {
-              const secStr = b.departureTimeInSecond !== undefined ? b.departureTimeInSecond : b.arrivalTimeInSecond;
-              if (secStr !== undefined && secStr !== null) {
-                const sec = parseInt(secStr);
-                if (!isNaN(sec)) {
-                  const m = Math.max(0, Math.round(sec / 60));
-                  minsList.push(m);
-                }
+          if (matchedStop && matchedStop.bus && matchedStop.bus.length > 0) {
+            const now = new Date();
+            const minutesList = matchedStop.bus.map(b => {
+              if (b.arrivalTimeInSecond !== undefined) {
+                return Math.max(0, Math.round(parseInt(b.arrivalTimeInSecond) / 60));
               }
-            });
-          }
-          minsList.sort((a, b) => a - b);
+              if (b.arrivalTimeText) {
+                const match = b.arrivalTimeText.match(/\d+/);
+                return match ? parseInt(match[0]) : 0;
+              }
+              return null;
+            }).filter(m => m !== null);
 
-          if (minsList.length > 0) {
-            updateCardEtaUI(route.id, minsList[0] === 0 ? '即將' : minsList[0], minsList[1] !== undefined ? minsList[1] : '');
-          } else {
-            updateCardEtaUI(route.id, '暫無班次', '');
+            if (minutesList.length > 0) {
+              updateCardEtaUI(route.id, minutesList[0] === 0 ? '即將' : minutesList[0], minutesList[1] !== undefined ? minutesList[1] : '');
+              return;
+            }
           }
-        } else {
-          updateCardEtaUI(route.id, '暫無班次', '');
         }
+        updateCardEtaUI(route.id, '暫無班次', '');
       } catch (err) {
         updateCardEtaUI(route.id, '暫無班次', '');
       }
@@ -1088,96 +1082,100 @@
       if (!primaryEl || !secondaryEl) return;
 
       if (primaryText === '暫無班次') {
-        primaryEl.className = 'text-sm sm:text-base font-bold text-slate-400 font-sans';
+        primaryEl.className = 'text-xs sm:text-sm font-bold text-slate-400 font-sans';
         primaryEl.textContent = '暫無班次';
         secondaryEl.textContent = '';
       } else {
-        primaryEl.className = 'text-2xl sm:text-3xl font-extrabold text-cyan-600 font-mono tracking-tight';
+        primaryEl.className = 'text-2xl sm:text-3xl font-black text-cyan-600 font-mono tracking-tight';
         primaryEl.textContent = primaryText;
         secondaryEl.textContent = secondaryText !== '' ? secondaryText : '';
       }
     }
 
+    // --- MODAL & SELECTORS LOGIC ---
     function openModal(id) {
       const modal = document.getElementById(id);
       modal.classList.remove('hidden');
 
+      document.getElementById('selectCountdownMode').value = appConfig.countdownMode || 'AUTO_HK_HOLIDAY';
+      document.getElementById('inputCountdownTitle').value = appConfig.countdownTitle || '';
+      document.getElementById('inputCountdownDate').value = appConfig.countdownDate || '';
       document.getElementById('selectWeatherStation').value = appConfig.weatherStation || '京士柏';
-      document.getElementById('selectCountdownMode').value = appConfig.countdownMode || 'AUTO_HK';
 
-      const holidaySelect = document.getElementById('selectHkHolidayDropdown');
-      holidaySelect.innerHTML = '';
-      HK_PUBLIC_HOLIDAYS.forEach(h => {
-        const opt = document.createElement('option');
-        opt.value = JSON.stringify({ title: h.title, date: h.date });
-        opt.textContent = `${h.date} - ${h.title}`;
-        holidaySelect.appendChild(opt);
-      });
-
-      toggleCountdownInputMode();
+      onCountdownModeChange();
       renderModalRouteList();
-      selectOperator(selectedOperator);
-    }
-
-    function toggleCountdownInputMode() {
-      const mode = document.getElementById('selectCountdownMode').value;
-      const holidaySelect = document.getElementById('selectHkHolidayDropdown');
-      const customFields = document.getElementById('customCountdownFields');
-
-      if (mode === 'AUTO_HK') {
-        holidaySelect.classList.add('hidden');
-        customFields.classList.add('hidden');
-      } else if (mode === 'SELECT_HK') {
-        holidaySelect.classList.remove('hidden');
-        customFields.classList.add('hidden');
-      } else if (mode === 'CUSTOM') {
-        holidaySelect.classList.add('hidden');
-        customFields.classList.remove('hidden');
-        document.getElementById('inputCountdownTitle').value = appConfig.countdownTitle || '';
-        document.getElementById('inputCountdownDate').value = appConfig.countdownDate || '';
-      }
+      preloadBusRoutes(selectedOperator);
     }
 
     function closeModal(id) {
       document.getElementById(id).classList.add('hidden');
-      document.getElementById('modalAlertBox').classList.add('hidden');
+    }
+
+    function onCountdownModeChange() {
+      const mode = document.getElementById('selectCountdownMode').value;
+      const holidayWrap = document.getElementById('holidaySelectWrap');
+      const customWrap = document.getElementById('customCountdownInputs');
+
+      if (mode === 'AUTO_HK_HOLIDAY') {
+        holidayWrap.classList.add('hidden');
+        customWrap.classList.add('hidden');
+      } else if (mode === 'SELECT_HOLIDAY') {
+        holidayWrap.classList.remove('hidden');
+        customWrap.classList.add('hidden');
+        populateHolidayDropdown();
+      } else {
+        holidayWrap.classList.add('hidden');
+        customWrap.classList.remove('hidden');
+      }
+    }
+
+    function populateHolidayDropdown() {
+      const select = document.getElementById('selectSpecificHoliday');
+      select.innerHTML = '';
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      HK_PUBLIC_HOLIDAYS.filter(h => h.date >= todayStr).forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify(h);
+        opt.textContent = `${h.name} (${h.date})`;
+        if (appConfig.countdownDate === h.date) opt.selected = true;
+        select.appendChild(opt);
+      });
     }
 
     function selectOperator(op) {
       selectedOperator = op;
       ['KMB', 'CTB', 'MTRBUS', 'MTR'].forEach(o => {
         const btn = document.getElementById(`tab-${o}`);
-        if (btn) {
-          if (o === op) {
-            btn.className = 'py-1.5 rounded font-bold transition bg-amber-500 text-black';
-          } else {
-            btn.className = 'py-1.5 rounded font-bold transition text-slate-400 hover:text-white';
-          }
+        if (o === op) {
+          btn.className = 'py-1 rounded font-bold transition bg-amber-500 text-black text-[11px] sm:text-xs shadow';
+        } else {
+          btn.className = 'py-1 rounded font-bold transition text-slate-400 hover:text-white text-[11px] sm:text-xs';
         }
       });
 
       const busContainer = document.getElementById('searchContainerBus');
+      const mtrBusContainer = document.getElementById('searchContainerMTRBus');
       const mtrContainer = document.getElementById('searchContainerMTR');
 
-      if (op === 'KMB' || op === 'CTB' || op === 'MTRBUS') {
+      busContainer.classList.add('hidden');
+      mtrBusContainer.classList.add('hidden');
+      mtrContainer.classList.add('hidden');
+
+      if (op === 'KMB' || op === 'CTB') {
         busContainer.classList.remove('hidden');
-        mtrContainer.classList.add('hidden');
         preloadBusRoutes(op);
+      } else if (op === 'MTRBUS') {
+        mtrBusContainer.classList.remove('hidden');
+        initMtrBusDropdown();
       } else if (op === 'MTR') {
-        busContainer.classList.add('hidden');
         mtrContainer.classList.remove('hidden');
       }
     }
 
     async function preloadBusRoutes(op) {
       const routeDropdown = document.getElementById('routeSelectDropdown');
-      
-      if (op === 'MTRBUS') {
-        fetchedBusRoutes = MTR_BUS_ROUTES_PRESET;
-        routeDropdown.innerHTML = '<option value="">-- 請在上方輸入號碼搜尋 (例如: K51, K66, 506...) --</option>';
-        return;
-      }
-
       routeDropdown.innerHTML = '<option value="">載入路線清單中...</option>';
 
       try {
@@ -1192,7 +1190,7 @@
         const data = await res.json();
 
         fetchedBusRoutes = data.data || [];
-        routeDropdown.innerHTML = '<option value="">-- 請在上方輸入號碼搜尋 (例如: 1A, 102, A21...) --</option>';
+        routeDropdown.innerHTML = '<option value="">-- 請在上方輸入號碼搜尋 (例如: 1A, 102, 68X...) --</option>';
       } catch (e) {
         routeDropdown.innerHTML = '<option value="">載入路線失敗，請重新開啟視窗</option>';
       }
@@ -1260,35 +1258,6 @@
           optIn.textContent = `${r.route}: ${r.dest_tc} 往 ${r.orig_tc}`;
           dropdown.appendChild(optIn);
         });
-      } else if (selectedOperator === 'MTRBUS') {
-        const matches = fetchedBusRoutes.filter(r => (r.route || '').toUpperCase().includes(keyword));
-        if (matches.length === 0) {
-          dropdown.innerHTML = `<option value="">未找到匹配 ${keyword} 的港鐵巴士路線</option>`;
-          return;
-        }
-
-        dropdown.innerHTML = '<option value="">-- 請選擇路線及方向 --</option>';
-        matches.forEach(r => {
-          const optOut = document.createElement('option');
-          optOut.value = JSON.stringify({
-            route: r.route,
-            boundDir: 'O',
-            orig_tc: r.orig_tc,
-            dest_tc: r.dest_tc
-          });
-          optOut.textContent = `${r.route}: ${r.orig_tc} 往 ${r.dest_tc}`;
-          dropdown.appendChild(optOut);
-
-          const optIn = document.createElement('option');
-          optIn.value = JSON.stringify({
-            route: r.route,
-            boundDir: 'I',
-            orig_tc: r.dest_tc,
-            dest_tc: r.orig_tc
-          });
-          optIn.textContent = `${r.route}: ${r.dest_tc} 往 ${r.orig_tc}`;
-          dropdown.appendChild(optIn);
-        });
       }
     }
 
@@ -1328,33 +1297,74 @@
             opt.textContent = `${s.seq}. ${stopInfo.data.name_tc}`;
             stopDropdown.appendChild(opt);
           }
-        } else if (selectedOperator === 'MTRBUS') {
-          stopDropdown.innerHTML = '<option value="">載入港鐵巴士實時站點中...</option>';
-          const res = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ language: 'zh', routeName: routeObj.route })
-          });
-          const busData = await res.json();
-
-          if (busData && busData.busStop && Array.isArray(busData.busStop)) {
-            stopDropdown.innerHTML = '<option value="">-- 請選擇上車站點 --</option>';
-            busData.busStop.forEach((st, idx) => {
-              const name = getMtrBusStopDisplayName(st, idx, routeObj);
-              const opt = document.createElement('option');
-              opt.value = JSON.stringify({ stopId: st.busStopId, stopName: name });
-              opt.textContent = `${idx + 1}. ${name} (${st.busStopId})`;
-              stopDropdown.appendChild(opt);
-            });
-          } else {
-            stopDropdown.innerHTML = '<option value="">未能載入該路線站點</option>';
-          }
         }
       } catch (e) {
         stopDropdown.innerHTML = '<option value="">載入站點失敗</option>';
       }
     }
 
+    // --- MTR BUS SETUP ---
+    function initMtrBusDropdown() {
+      const select = document.getElementById('mtrBusRouteSelect');
+      select.innerHTML = '<option value="">-- 請選擇港鐵巴士路線 --</option>';
+
+      MTR_BUS_ROUTES.forEach((r, idx) => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify(r);
+        opt.textContent = `${r.route} (${r.orig_tc} ⇄ ${r.dest_tc})`;
+        select.appendChild(opt);
+      });
+
+      if (MTR_BUS_ROUTES.length > 0) {
+        select.selectedIndex = 1;
+        onMtrBusRouteSelected();
+      }
+    }
+
+    async function onMtrBusRouteSelected() {
+      const val = document.getElementById('mtrBusRouteSelect').value;
+      const stopSelect = document.getElementById('mtrBusStopSelect');
+      stopSelect.innerHTML = '<option value="">載入中...</option>';
+
+      if (!val) return;
+      const routeInfo = JSON.parse(val);
+
+      try {
+        const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            routeName: routeInfo.route,
+            language: 'zh'
+          })
+        });
+
+        const data = await res.json();
+        stopSelect.innerHTML = '';
+
+        if (data && (data.busStop || data.busStopList)) {
+          const stops = data.busStop || data.busStopList || [];
+          stops.forEach((s, idx) => {
+            const stopId = s.busStopId || s.busStopCode || `STOP-${idx+1}`;
+            const displayName = getMtrBusStationName(stopId, routeInfo.route, s.busStopName || s.busStopNameChi || s.name, idx + 1);
+
+            const opt = document.createElement('option');
+            opt.value = JSON.stringify({
+              stopId: stopId,
+              stopName: displayName
+            });
+            opt.textContent = `${idx + 1}. ${displayName} (${stopId})`;
+            stopSelect.appendChild(opt);
+          });
+        } else {
+          stopSelect.innerHTML = '<option value="">未能取得站點清單</option>';
+        }
+      } catch (err) {
+        stopSelect.innerHTML = '<option value="">載入失敗，請重試</option>';
+      }
+    }
+
+    // --- MTR HEAVY RAIL SETUP ---
     function initModalSelectors() {
       const lineSelect = document.getElementById('mtrLineSelect');
       lineSelect.innerHTML = '';
@@ -1381,41 +1391,47 @@
       });
     }
 
-    function showModalAlert(msg) {
-      const alertBox = document.getElementById('modalAlertBox');
-      alertBox.textContent = msg;
-      alertBox.classList.remove('hidden');
-      setTimeout(() => {
-        alertBox.classList.add('hidden');
-      }, 3500);
-    }
-
     function addSelectedRoute() {
-      if (selectedOperator === 'KMB' || selectedOperator === 'CTB' || selectedOperator === 'MTRBUS') {
+      if (selectedOperator === 'KMB' || selectedOperator === 'CTB') {
         const routeVal = document.getElementById('routeSelectDropdown').value;
         const stopVal = document.getElementById('stopSelectDropdown').value;
 
         if (!routeVal || !stopVal) {
-          showModalAlert('請先搜尋並選擇路線與上車站點！');
           return;
         }
 
         const routeObj = JSON.parse(routeVal);
         const stopObj = JSON.parse(stopVal);
 
-        let badgeLabel = '九巴 KMB';
-        if (selectedOperator === 'CTB') badgeLabel = '城巴 CTB';
-        if (selectedOperator === 'MTRBUS') badgeLabel = '港鐵巴士';
-
         const newRoute = {
           id: 'custom-' + Date.now(),
           type: selectedOperator,
-          badgeText: badgeLabel,
+          badgeText: selectedOperator === 'KMB' ? '九巴 KMB' : '城巴 CTB',
           routeNo: routeObj.route,
           origin: stopObj.stopName,
           dest: routeObj.dest_tc || '總站',
           stopId: stopObj.stopId,
           boundDir: routeObj.boundDir
+        };
+
+        appConfig.routes.push(newRoute);
+      } else if (selectedOperator === 'MTRBUS') {
+        const routeVal = document.getElementById('mtrBusRouteSelect').value;
+        const stopVal = document.getElementById('mtrBusStopSelect').value;
+
+        if (!routeVal || !stopVal) return;
+
+        const routeObj = JSON.parse(routeVal);
+        const stopObj = JSON.parse(stopVal);
+
+        const newRoute = {
+          id: 'custom-' + Date.now(),
+          type: 'MTRBUS',
+          badgeText: '港鐵巴士',
+          routeNo: routeObj.route,
+          origin: stopObj.stopName,
+          dest: routeObj.dest_tc,
+          stopId: stopObj.stopId
         };
 
         appConfig.routes.push(newRoute);
@@ -1454,7 +1470,7 @@
         item.innerHTML = `
           <div class="truncate mr-2">
             <span class="font-bold text-amber-400">[${r.badgeText || r.type}] ${r.routeNo}</span>
-            <span class="text-slate-300 ml-1 sm:ml-2 truncate">${r.origin} 往 ${r.dest}</span>
+            <span class="text-slate-300 ml-1.5">${r.origin} 往 ${r.dest}</span>
           </div>
           <button onclick="removeRouteAt(${idx})" class="text-rose-400 hover:text-rose-300 font-bold p-1 shrink-0">
             <i class="fa-solid fa-trash"></i>
@@ -1478,12 +1494,12 @@
       const mode = document.getElementById('selectCountdownMode').value;
       appConfig.countdownMode = mode;
 
-      if (mode === 'SELECT_HK') {
-        const selectedVal = document.getElementById('selectHkHolidayDropdown').value;
-        if (selectedVal) {
-          const parsed = JSON.parse(selectedVal);
-          appConfig.countdownTitle = parsed.title;
-          appConfig.countdownDate = parsed.date;
+      if (mode === 'SELECT_HOLIDAY') {
+        const holidayVal = document.getElementById('selectSpecificHoliday').value;
+        if (holidayVal) {
+          const hObj = JSON.parse(holidayVal);
+          appConfig.countdownTitle = hObj.name;
+          appConfig.countdownDate = hObj.date;
         }
       } else if (mode === 'CUSTOM') {
         appConfig.countdownTitle = document.getElementById('inputCountdownTitle').value;
@@ -1491,14 +1507,12 @@
       }
 
       appConfig.weatherStation = document.getElementById('selectWeatherStation').value;
-
       localStorage.setItem('hk_dashboard_config_v5', JSON.stringify(appConfig));
 
       closeModal('customModal');
       fetchWeatherData();
       renderRouteCards();
       fetchEtaData();
-      updateCountdown();
     }
 
     function toggleFullscreen() {
