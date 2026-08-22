@@ -1,0 +1,2646 @@
+<!DOCTYPE html>
+<html lang="zh-HK" class="h-full w-full select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>香港公共交通與天文台天氣 Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            kmb: '#e11d48',
+            ctb: '#eab308',
+            mtr: '#00508f',
+            mtrbus: '#a21caf',
+            lrt: '#0f766e',
+            bgDark: '#0b0e14',
+            cardDark: '#131822'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    html, body {
+      min-height: 100%;
+      min-height: 100dvh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      background-color: #0b0e14;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    @keyframes pulse-fast {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .animate-pulse-fast {
+      animation: pulse-fast 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="text-white min-h-screen md:h-screen w-full flex flex-col justify-between p-2 sm:p-4 box-border overflow-y-auto md:overflow-hidden relative bg-[#0b0e14]">
+
+  <!-- Header bar -->
+  <header class="flex justify-between items-center px-2 py-1 mb-1 text-xs text-slate-400 shrink-0">
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse-fast"></span>
+      <span id="liveStatusText" class="font-mono tracking-tight text-[11px] sm:text-xs text-slate-400">即時更新 (每15秒)</span>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="flex-1 grid grid-cols-1 md:grid-cols-12 gap-3 min-h-0 w-full mb-1">
+    
+    <!-- Left Section: Weather & Clock & Holiday Countdown -->
+    <section class="md:col-span-5 lg:col-span-4 bg-cardDark rounded-2xl p-4 flex flex-col justify-between border border-slate-800 shadow-2xl overflow-y-auto custom-scrollbar gap-4">
+      
+      <!-- Top Section: Weather & Clock Layout -->
+      <div class="flex flex-col gap-2">
+        <!-- Min/Max Temp & Refresh Header -->
+        <div class="flex justify-between items-center text-slate-300 font-medium">
+          <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold">
+            <span><i class="fa-solid fa-arrow-down text-blue-400"></i> <span id="minTemp">26</span>°C</span>
+            <span><i class="fa-solid fa-arrow-up text-rose-400"></i> <span id="maxTemp">29</span>°C</span>
+          </div>
+          <button onclick="fetchWeatherData()" title="重新整理天氣" class="text-slate-400 hover:text-white p-1 transition">
+            <i class="fa-solid fa-rotate-right text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Main Weather + Clock Grid -->
+        <div class="flex justify-between items-start mt-1">
+          <!-- Left: Big Temperature & Humidity & Station Info -->
+          <div class="flex flex-col">
+            <div id="currentTemp" class="text-5xl sm:text-6xl font-black tracking-tight font-mono text-white leading-none">
+              28°C
+            </div>
+            <div id="humidity" class="text-2xl sm:text-3xl font-bold text-slate-200 font-mono mt-1">
+              82%
+            </div>
+            
+            <div class="mt-3 space-y-0.5">
+              <div class="flex items-center gap-2">
+                <h2 id="stationName" class="text-2xl sm:text-3xl font-black tracking-wide text-white">京士柏</h2>
+                <span id="warningBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">天氣警告</span>
+              </div>
+              <p id="uvIndex" class="text-xs sm:text-sm text-slate-300 font-medium mt-1">紫外線指數: 0 (低)</p>
+            </div>
+          </div>
+
+          <!-- Right: Weather Icon & Digital Clock & Pill Date -->
+          <div class="flex flex-col items-end justify-between self-stretch">
+            <img id="weatherIcon" src="https://www.hko.gov.hk/images/HKOWxIconOutline/pic50.png" alt="Weather Icon" class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md" onerror="this.onerror=null; this.src='https://placehold.co/80x80/000000/FFF?text=HKO';">
+            
+            <div class="text-right mt-2">
+              <div id="clockDisplay" class="text-2xl sm:text-3xl font-extrabold font-mono tracking-wider text-white">
+                22:28:53
+              </div>
+              <div id="dateDisplay" class="mt-1 inline-block bg-teal-950/80 border border-teal-700/60 text-teal-300 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide">
+                2026年8月21日(五)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Holiday Countdown Card -->
+      <div class="w-full my-auto">
+        <div class="relative overflow-hidden bg-gradient-to-br from-amber-950/70 via-stone-900 to-amber-950/90 border-2 border-amber-600/70 rounded-2xl p-4 shadow-xl">
+          <div class="flex justify-between items-center mb-1.5">
+            <div class="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
+              <i class="fa-solid fa-plane text-amber-400"></i>
+              <span id="countdownBadgeMode">香港公眾假期 (自動)</span>
+            </div>
+            <span class="text-[10px] bg-amber-600/40 text-amber-200 px-2 py-0.5 rounded-full border border-amber-500/50 font-semibold" id="countdownTypeLabel">自動追蹤</span>
+          </div>
+
+          <div class="flex justify-between items-end gap-2 mt-2">
+            <div class="min-w-0 flex-1">
+              <h3 id="countdownTitle" class="text-2xl sm:text-3xl font-black text-white tracking-tight truncate leading-tight">
+                中秋節翌日
+              </h3>
+              <p id="countdownDateSub" class="text-xs sm:text-sm text-amber-200/90 font-medium mt-1">
+                2026年09月26日 (星期六)
+              </p>
+              <div class="text-[11px] text-slate-400 mt-3 font-medium">
+                距離放假還有
+              </div>
+            </div>
+
+            <div class="text-right shrink-0">
+              <div class="flex items-baseline justify-end gap-1">
+                <span id="countdownDays" class="text-5xl sm:text-6xl font-black font-mono text-amber-400 tracking-tight leading-none drop-shadow">
+                  36
+                </span>
+                <span class="text-base sm:text-lg font-bold text-amber-300">天</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Right Section: Transport Arrival Times List -->
+    <section class="md:col-span-7 lg:col-span-8 flex flex-col bg-cardDark rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[350px] md:min-h-0">
+      <div class="bg-red-800 px-4 py-2.5 flex justify-between items-center shrink-0 shadow">
+        <div class="flex items-center gap-2">
+          <h1 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left"></i> 即時到站時間
+          </h1>
+          <span id="routeCountBadge" class="bg-black/30 text-white text-[11px] px-2.5 py-0.5 rounded-full font-medium">0 條路線</span>
+          <button onclick="manualRefreshEta()" title="手動更新到站時間" class="bg-black/20 hover:bg-black/40 active:scale-95 text-white px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition ml-1">
+            <i id="transitRefreshIcon" class="fa-solid fa-rotate-right text-xs"></i>
+            <span class="hidden sm:inline">更新</span>
+          </button>
+        </div>
+        <div class="text-xs text-red-100/90 font-mono font-medium">
+          分鐘 min(s)
+        </div>
+      </div>
+
+      <div id="transitCardList" class="flex-1 p-3 space-y-2.5 overflow-y-auto custom-scrollbar">
+        <!-- Live Route Cards Rendered dynamically -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Floating Settings Button (Bottom Right) -->
+  <button onclick="openModal('customModal')" class="fixed bottom-4 right-4 z-40 bg-slate-800/90 hover:bg-slate-700 text-slate-100 px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition border border-slate-600 shadow-2xl flex items-center gap-2 active:scale-95 backdrop-blur-md hover:border-amber-400">
+    <i class="fa-solid fa-sliders text-amber-400 text-sm"></i>
+    <span>設定及路線</span>
+  </button>
+
+  <!-- Configuration Modal -->
+  <div id="customModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <div class="p-3.5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-amber-400"></i> 自訂 Dashboard 設定
+        </h3>
+        <button onclick="closeModal('customModal')" class="text-slate-400 hover:text-white p-1 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-3.5 sm:p-4 overflow-y-auto space-y-4 custom-scrollbar text-xs sm:text-sm">
+        
+        <!-- Weather Station & Holiday Config -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700">
+            <h4 class="font-bold text-slate-200 mb-1.5 flex items-center gap-1.5 text-xs">
+              <i class="fa-solid fa-cloud-sun text-amber-400"></i> 天文台氣象站
+            </h4>
+            <select id="selectWeatherStation" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+              <option value="京士柏">京士柏 (King's Park)</option>
+              <option value="香港天文台">香港天文台 (Hong Kong Observatory)</option>
+              <option value="屯門">屯門 (Tuen Mun)</option>
+              <option value="沙田">沙田 (Sha Tin)</option>
+              <option value="元朗公園">元朗公園 (Yuen Long)</option>
+              <option value="旺角">旺角 (Mong Kok)</option>
+              <option value="觀塘">觀塘 (Kwun Tong)</option>
+              <option value="將軍澳">將軍澳 (Tseung Kwan O)</option>
+              <option value="荃灣">荃灣 (Tsuen Wan)</option>
+              <option value="赤鱲角">赤鱲角 (Chek Lap Kok)</option>
+            </select>
+          </div>
+
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700">
+            <h4 class="font-bold text-slate-200 mb-1.5 flex items-center gap-1.5 text-xs">
+              <i class="fa-solid fa-calendar-star text-amber-400"></i> 倒數模式設定
+            </h4>
+            <select id="selectCountdownMode" onchange="onCountdownModeChange()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 mb-2">
+              <option value="AUTO_HK_HOLIDAY">🎉 自動追蹤下一個香港公眾假期</option>
+              <option value="SELECT_HOLIDAY">📅 指定特定香港公眾假期</option>
+              <option value="CUSTOM">✍️ 自訂倒數名稱及日期</option>
+            </select>
+
+            <div id="holidaySelectWrap" class="hidden mb-1.5">
+              <select id="selectSpecificHoliday" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white">
+              </select>
+            </div>
+
+            <div id="customCountdownInputs" class="space-y-1.5 hidden">
+              <input type="text" id="inputCountdownTitle" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white" placeholder="例如：自訂紀念日 / 考試">
+              <input type="date" id="inputCountdownDate" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white">
+            </div>
+          </div>
+        </div>
+
+        <!-- Add New Transit Route Search Container -->
+        <div class="bg-slate-800/80 p-3 rounded-xl border border-amber-500/30 space-y-2.5">
+          <div class="flex justify-between items-center border-b border-slate-700/80 pb-2">
+            <h4 class="font-bold text-amber-400 flex items-center gap-1.5 text-xs sm:text-sm">
+              <i class="fa-solid fa-magnifying-glass"></i> 搜尋及新增公共交通路線
+            </h4>
+          </div>
+
+          <!-- Transport Operator Tabs (5 Options) -->
+          <div class="grid grid-cols-5 gap-1 bg-slate-950 p-1 rounded-lg text-center text-xs">
+            <button id="tab-KMB" onclick="selectOperator('KMB')" class="py-1 rounded font-bold transition bg-rose-600 text-white text-[10px] sm:text-xs">九巴/龍運</button>
+            <button id="tab-CTB" onclick="selectOperator('CTB')" class="py-1 rounded font-bold transition text-slate-400 hover:text-white text-[10px] sm:text-xs">城巴 CTB</button>
+            <button id="tab-MTRBUS" onclick="selectOperator('MTRBUS')" class="py-1 rounded font-bold transition text-slate-400 hover:text-white text-[10px] sm:text-xs">港鐵巴士</button>
+            <button id="tab-MTR" onclick="selectOperator('MTR')" class="py-1 rounded font-bold transition text-slate-400 hover:text-white text-[10px] sm:text-xs">港鐵重鐵</button>
+            <button id="tab-LRT" onclick="selectOperator('LRT')" class="py-1 rounded font-bold transition text-slate-400 hover:text-white text-[10px] sm:text-xs">香港輕鐵</button>
+          </div>
+
+          <!-- Bus Search Section (KMB / CTB) -->
+          <div id="searchContainerBus" class="space-y-2">
+            <div class="flex gap-2">
+              <input type="text" id="routeSearchInput" onkeyup="filterBusRoutes()" class="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400" placeholder="輸入路線號碼 (例如: 1A, 102, 68X, 968...)">
+              <button onclick="filterBusRoutes()" class="bg-amber-600 hover:bg-amber-500 px-3 py-1.5 rounded text-xs text-white font-bold">
+                搜尋
+              </button>
+            </div>
+
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">選擇路線及方向：</label>
+              <select id="routeSelectDropdown" onchange="onRouteSelected()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                <option value="">-- 請先輸入路線號碼搜尋 --</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">選擇上車站點：</label>
+              <select id="stopSelectDropdown" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                <option value="">-- 請先選擇路線 --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MTR Bus Search Section -->
+          <div id="searchContainerMTRBus" class="space-y-2 hidden">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">選擇港鐵巴士路線及方向：</label>
+              <select id="mtrBusRouteSelect" onchange="onMtrBusRouteSelected()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
+              </select>
+            </div>
+
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">選擇上車站點：</label>
+              <select id="mtrBusStopSelect" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                <option value="">載入分站中...</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MTR Heavy Rail Search Section -->
+          <div id="searchContainerMTR" class="space-y-2 hidden">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label class="text-[11px] text-slate-400 block mb-1">選擇綫路：</label>
+                <select id="mtrLineSelect" onchange="onMtrLineChange()" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white">
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-400 block mb-1">選擇車站：</label>
+                <select id="mtrStationSelect" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white">
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-400 block mb-1">往方向/終點：</label>
+                <select id="mtrBoundSelect" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white">
+                  <option value="DOWN">DOWN（API 下行方向）</option>
+                  <option value="UP">UP（API 上行方向）</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Light Rail Search Section -->
+          <div id="searchContainerLRT" class="space-y-2 hidden">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">1. 選擇輕鐵路線：</label>
+              <select id="lrtRouteSelect" onchange="onLrtRouteSelected()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
+              </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] text-slate-400 block mb-1">2. 選擇上車站點：</label>
+                <select id="lrtOriginSelect" onchange="onLrtOriginChanged()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                  <option value="">-- 請先選擇輕鐵路線 --</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-400 block mb-1">3. 選擇落車站點 (目的地)：</label>
+                <select id="lrtDestSelect" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                  <option value="">-- 請先選擇上車站點 --</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="addSelectedRoute()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded text-xs transition shadow-md active:scale-98">
+            + 新增選定路線至首頁 Display
+          </button>
+        </div>
+
+        <!-- Saved Routes Configurator -->
+        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 space-y-2">
+          <div class="flex justify-between items-center">
+            <h4 class="font-bold text-slate-200 flex items-center gap-1.5 text-xs">
+              <i class="fa-solid fa-list text-emerald-400"></i> 已儲存顯示路線
+            </h4>
+            <button onclick="addDefaultPresets()" class="text-[11px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-200">
+              重置為預設路線
+            </button>
+          </div>
+
+          <div id="modalRouteList" class="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1">
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-3 border-t border-slate-800 bg-slate-950 flex justify-end gap-2">
+        <button onclick="closeModal('customModal')" class="bg-slate-700 hover:bg-slate-600 px-4 py-1.5 rounded text-slate-200 text-xs font-semibold">
+          取消
+        </button>
+        <button onclick="saveSettings()" class="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-white text-xs font-semibold">
+          儲存並更新 Dashboard
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const HK_PUBLIC_HOLIDAYS = [
+      { name: "元旦", date: "2025-01-01" },
+      { name: "農曆年初一", date: "2025-01-29" },
+      { name: "農曆年初二", date: "2025-01-30" },
+      { name: "農曆年初三", date: "2025-01-31" },
+      { name: "清明節", date: "2025-04-04" },
+      { name: "耶穌受難節", date: "2025-04-18" },
+      { name: "耶穌受難節翌日", date: "2025-04-19" },
+      { name: "復活節星期一", date: "2025-04-21" },
+      { name: "勞動節", date: "2025-05-01" },
+      { name: "佛誕", date: "2025-05-05" },
+      { name: "端午節", date: "2025-05-31" },
+      { name: "香港特別行政區成立紀念日", date: "2025-07-01" },
+      { name: "國慶日", date: "2025-10-01" },
+      { name: "中秋節翌日", date: "2025-10-07" },
+      { name: "重陽節", date: "2025-10-29" },
+      { name: "聖誕節", date: "2025-12-25" },
+      { name: "聖誕節後第一個周日", date: "2025-12-26" },
+
+      { name: "元旦", date: "2026-01-01" },
+      { name: "農曆年初一", date: "2026-02-17" },
+      { name: "農曆年初二", date: "2026-02-18" },
+      { name: "農曆年初三", date: "2026-02-19" },
+      { name: "耶穌受難節", date: "2026-04-03" },
+      { name: "耶穌受難節翌日", date: "2026-04-04" },
+      { name: "清明節翌日", date: "2026-04-06" },
+      { name: "復活節星期一", date: "2026-04-06" },
+      { name: "勞動節", date: "2026-05-01" },
+      { name: "佛誕", date: "2026-05-24" },
+      { name: "端午節", date: "2026-06-19" },
+      { name: "香港特別行政區成立紀念日", date: "2026-07-01" },
+      { name: "中秋節翌日", date: "2026-09-26" },
+      { name: "國慶日", date: "2026-10-01" },
+      { name: "重陽節", date: "2026-10-19" },
+      { name: "聖誕節", date: "2026-12-25" },
+      { name: "聖誕節後第一個周日", date: "2026-12-26" },
+
+      { name: "元旦", date: "2027-01-01" },
+      { name: "農曆年初一", date: "2027-02-06" },
+      { name: "農曆年初二", date: "2027-02-08" },
+      { name: "農曆年初三", date: "2027-02-09" },
+      { name: "清明節", date: "2027-04-05" },
+      { name: "耶穌受難節", date: "2027-03-26" },
+      { name: "復活節星期一", date: "2027-03-29" },
+      { name: "勞動節", date: "2027-05-01" },
+      { name: "佛誕", date: "2027-05-13" },
+      { name: "端午節", date: "2027-06-09" },
+      { name: "香港特別行政區成立紀念日", date: "2027-07-01" },
+      { name: "中秋節翌日", date: "2027-09-16" },
+      { name: "國慶日", date: "2027-10-01" },
+      { name: "重陽節", date: "2027-10-09" },
+      { name: "聖誕節", date: "2027-12-25" }
+    ];
+
+    // MTR BUS ROUTES LIST (Separated 506 into two directions: D and U)
+    const MTR_BUS_ROUTES = [
+      { route: 'K51', orig_tc: '富泰', dest_tc: '大欖', boundDir: 'D' },
+      { route: 'K51', orig_tc: '大欖', dest_tc: '富泰', boundDir: 'U' },
+      { route: 'K51A', orig_tc: '富泰', dest_tc: '掃管笏', boundDir: 'D' },
+      { route: 'K51A', orig_tc: '掃管笏', dest_tc: '富泰', boundDir: 'U' },
+      { route: 'K52', orig_tc: '悅湖山莊', dest_tc: '龍鼓灘', boundDir: 'D' },
+      { route: 'K52', orig_tc: '龍鼓灘', dest_tc: '悅湖山莊', boundDir: 'U' },
+      { route: 'K52A', orig_tc: '屯門站', dest_tc: '曾咀', boundDir: 'D' },
+      { route: 'K52A', orig_tc: '曾咀', dest_tc: '屯門站', boundDir: 'U' },
+      { route: 'K53', orig_tc: '屯門站', dest_tc: '掃管笏 (循環綫)', boundDir: 'D' },
+      { route: 'K54', orig_tc: '和田邨', dest_tc: '屯門市中心 (循環綫)', boundDir: 'D' },
+      { route: 'K58', orig_tc: '富泰', dest_tc: '青山灣', boundDir: 'D' },
+      { route: 'K58', orig_tc: '青山灣', dest_tc: '富泰', boundDir: 'U' },
+      { route: 'K65', orig_tc: '元朗站 (北)', dest_tc: '流浮山', boundDir: 'D' },
+      { route: 'K65', orig_tc: '流浮山', dest_tc: '元朗站 (東)', boundDir: 'U' },
+      { route: 'K65A', orig_tc: '天水圍站', dest_tc: '流浮山', boundDir: 'D' },
+      { route: 'K65A', orig_tc: '流浮山', dest_tc: '天水圍站', boundDir: 'U' },
+      { route: 'K66', orig_tc: '朗屏', dest_tc: '大棠黃泥墩村', boundDir: 'D' },
+      { route: 'K66', orig_tc: '大棠黃泥墩村', dest_tc: '朗屏', boundDir: 'U' },
+      { route: 'K68', orig_tc: '元朗公園', dest_tc: '形點 (循環綫)', boundDir: 'D' },
+      { route: 'K73', orig_tc: '天恆', dest_tc: '元朗西', boundDir: 'D' },
+      { route: 'K73', orig_tc: '元朗西', dest_tc: '天恆', boundDir: 'U' },
+      { route: 'K74', orig_tc: '天瑞', dest_tc: '凹頭 (循環綫)', boundDir: 'D' },
+      { route: 'K75A', orig_tc: '天水圍站', dest_tc: '洪水橋 (循環綫)', boundDir: 'D' },
+      { route: 'K75P', orig_tc: '天瑞', dest_tc: '洪水橋 (循環綫)', boundDir: 'D' },
+      { route: 'K76', orig_tc: '天恆', dest_tc: '天水圍站', boundDir: 'D' },
+      { route: 'K76', orig_tc: '天水圍站', dest_tc: '天恆', boundDir: 'U' },
+      { route: '506', orig_tc: '屯門碼頭', dest_tc: '兆麟', boundDir: 'D' },
+      { route: '506', orig_tc: '兆麟', dest_tc: '屯門碼頭', boundDir: 'U' },
+      { route: 'K12', orig_tc: '大埔墟站', dest_tc: '八號花園', boundDir: 'D' },
+      { route: 'K12', orig_tc: '八號花園', dest_tc: '大埔墟站', boundDir: 'U' },
+      { route: 'K17', orig_tc: '富善', dest_tc: '大埔墟站', boundDir: 'D' },
+      { route: 'K18', orig_tc: '廣福', dest_tc: '大埔墟站', boundDir: 'D' },
+      { route: 'K14', orig_tc: '大埔超級城', dest_tc: '大埔墟站', boundDir: 'D' },
+      { route: 'K52P', orig_tc: '龍鼓灘', dest_tc: '屯門站', boundDir: 'U' },
+      { route: 'K53S', orig_tc: '屯門站', dest_tc: '業旺邨 (循環綫)', boundDir: 'D' },
+      { route: 'K54A', orig_tc: '和田邨', dest_tc: '兆康站', boundDir: 'D' },
+      { route: 'K54A', orig_tc: '兆康站', dest_tc: '和田邨', boundDir: 'U' },
+      { route: 'K75S', orig_tc: '天水圍站', dest_tc: '洪福邨 (循環綫)', boundDir: 'D' },
+      { route: 'K75S', orig_tc: '洪水橋巴士廠', dest_tc: '天水圍站', boundDir: 'U' },
+      { route: 'K76S', orig_tc: '濕地公園路', dest_tc: '天盛苑 / 港鐵天水圍站', boundDir: 'D' }
+    ];
+
+    const OFFICIAL_MTR_BUS_ROUTE_CODES = [
+      '506', 'K12', 'K14', 'K17', 'K18', 'K51', 'K51A', 'K52', 'K52A', 'K52P',
+      'K53', 'K53S', 'K54', 'K54A', 'K58', 'K65', 'K65A', 'K66', 'K68', 'K73',
+      'K74', 'K75A', 'K75P', 'K75S', 'K76', 'K76S'
+    ];
+
+    const MTR_BUS_STATION_MAP = {
+      // 506
+      "506-D010": "屯門碼頭 (總站)",
+      "506-D020": "美樂花園",
+      "506-D030": "輕鐵蝴蝶站",
+      "506-D040": "輕鐵車廠",
+      "506-D050": "輕鐵龍門站",
+      "506-D060": "富健花園",
+      "506-D070": "屯門站",
+      "506-D080": "輕鐵市中心站",
+      "506-D090": "輕鐵安定站",
+      "506-D100": "兆麟 (總站)",
+      "506-U010": "兆麟 (總站)",
+      "506-U020": "輕鐵安定站",
+      "506-U030": "輕鐵市中心站",
+      "506-U040": "屯門站",
+      "506-U050": "富健花園",
+      "506-U060": "輕鐵龍門站",
+      "506-U070": "輕鐵車廠",
+      "506-U080": "輕鐵蝴蝶站",
+      "506-U090": "美樂花園",
+      "506-U100": "屯門碼頭 (總站)",
+
+      // K65
+      "K65-D010": "元朗站 (北) 公共運輸交匯處",
+      "K65-D020": "又新街 (大馬路)",
+      "K65-D030": "大棠路 (大馬路)",
+      "K65-D040": "康樂路 (大馬路)",
+      "K65-D050": "水邊圍邨 (水邊圍站)",
+      "K65-D060": "朗庭園 (青山公路)",
+      "K65-D070": "屏山 (屏山站)",
+      "K65-D080": "塘坊村站",
+      "K65-D090": "灰沙圍",
+      "K65-D100": "洪水橋站",
+      "K65-D110": "洪天路",
+      "K65-D120": "石埗村",
+      "K65-D130": "沙江圍",
+      "K65-D140": "盛祥路",
+      "K65-D150": "馮家圍",
+      "K65-D160": "輞井村",
+      "K65-D170": "新慶村",
+      "K65-D180": "沙江村天后廟",
+      "K65-D190": "流浮山公立學校",
+      "K65-D200": "流浮山 (總站)",
+      "K65-U010": "流浮山 (總站)",
+      "K65-U020": "流浮山公立學校",
+      "K65-U030": "沙江村天后廟",
+      "K65-U040": "新慶村",
+      "K65-U050": "輞井村",
+      "K65-U060": "馮家圍",
+      "K65-U070": "盛祥路",
+      "K65-U080": "沙江圍",
+      "K65-U090": "石埗村",
+      "K65-U100": "洪天路",
+      "K65-U110": "洪水橋站",
+      "K65-U120": "灰沙圍",
+      "K65-U130": "塘坊村站",
+      "K65-U140": "屏山",
+      "K65-U150": "水邊圍邨",
+      "K65-U160": "元朗廣場",
+      "K65-U170": "同樂街",
+      "K65-U180": "谷亭街",
+      "K65-U190": "元朗站 (東)",
+
+      // K51
+      "K51-D010": "富泰 (總站)",
+      "K51-D020": "嶺南大學",
+      "K51-D030": "彩暉花園",
+      "K51-D040": "兆康苑兆賢閣",
+      "K51-D050": "屯門醫院",
+      "K51-D060": "兆康站 (南)",
+      "K51-D070": "景峰花園",
+      "K51-D080": "屯門景新臺",
+      "K51-D090": "新墟街市",
+      "K51-D100": "屯門市中心",
+      "K51-D110": "屯門官立中學",
+      "K51-D120": "恆順園",
+      "K51-D130": "恆豐園",
+      "K51-D140": "三聖",
+      "K51-D150": "青山灣",
+      "K51-D160": "海華路",
+      "K51-D170": "碧翠花園",
+      "K51-D180": "青山灣碼頭",
+      "K51-D190": "咖啡灣",
+      "K51-D200": "香港黃金海岸",
+      "K51-D210": "掃管笏變電站",
+      "K51-D220": "愛琴海岸",
+      "K51-D230": "嘉和里村",
+      "K51-D240": "小秀村",
+      "K51-D250": "龍珠島",
+      "K51-D260": "大欖 (總站)",
+      "K51-U010": "大欖 (總站)",
+      "K51-U020": "龍珠島",
+      "K51-U030": "小秀村",
+      "K51-U040": "嘉和里村",
+      "K51-U050": "愛琴海岸",
+      "K51-U060": "掃管笏變電站",
+      "K51-U070": "香港黃金海岸",
+      "K51-U080": "咖啡灣",
+      "K51-U090": "青山灣碼頭",
+      "K51-U100": "碧翠花園",
+      "K51-U110": "海華路",
+      "K51-U120": "青山灣",
+      "K51-U130": "三聖",
+      "K51-U140": "恆豐園",
+      "K51-U150": "恆順園",
+      "K51-U160": "屯興路",
+      "K51-U170": "屯門市中心",
+      "K51-U180": "新墟街市",
+      "K51-U190": "景峰花園",
+      "K51-U200": "兆康站 (南)",
+      "K51-U210": "屯門醫院",
+      "K51-U220": "彩暉花園",
+      "K51-U230": "嶺南大學",
+      "K51-U240": "富泰 (總站)",
+
+      // K51A
+      "K51A-D010": "富泰 (總站)",
+      "K51A-D020": "嶺南大學",
+      "K51A-D030": "彩暉花園",
+      "K51A-D040": "兆康苑兆賢閣",
+      "K51A-D050": "屯門醫院",
+      "K51A-D060": "兆康站 (南)",
+      "K51A-D070": "景峰花園",
+      "K51A-D080": "屯門景新臺",
+      "K51A-D090": "新墟街市",
+      "K51A-D100": "屯門市中心",
+      "K51A-D110": "屯門官立中學",
+      "K51A-D120": "恆順園",
+      "K51A-D130": "恆豐園",
+      "K51A-D140": "三聖",
+      "K51A-D150": "青山灣",
+      "K51A-D160": "海華路",
+      "K51A-D170": "碧翠花園",
+      "K51A-D180": "青山灣碼頭",
+      "K51A-D190": "咖啡灣",
+      "K51A-D200": "香港黃金海岸",
+      "K51A-D210": "掃管笏變電站",
+      "K51A-D220": "愛琴海岸",
+      "K51A-D230": "掃管笏路",
+      "K51A-D240": "掃管笏 (總站)",
+      "K51A-U010": "掃管笏 (總站)",
+      "K51A-U020": "掃管笏路",
+      "K51A-U030": "愛琴海岸",
+      "K51A-U040": "掃管笏變電站",
+      "K51A-U050": "香港黃金海岸",
+      "K51A-U060": "咖啡灣",
+      "K51A-U070": "青山灣碼頭",
+      "K51A-U080": "碧翠花園",
+      "K51A-U090": "海華路",
+      "K51A-U100": "青山灣",
+      "K51A-U110": "三聖",
+      "K51A-U120": "恆豐園",
+      "K51A-U130": "恆順園",
+      "K51A-U140": "屯興路",
+      "K51A-U150": "屯門市中心",
+      "K51A-U160": "新墟街市",
+      "K51A-U170": "景峰花園",
+      "K51A-U180": "兆康站 (南)",
+      "K51A-U190": "屯門醫院",
+      "K51A-U200": "彩暉花園",
+      "K51A-U210": "嶺南大學",
+      "K51A-U220": "富泰 (總站)",
+
+      // K52
+      "K52-D010": "悅湖山莊 (總站)",
+      "K52-D020": "邁亞美海灣",
+      "K52-D030": "屯門碼頭",
+      "K52-D040": "湖景邨湖畔樓",
+      "K52-D050": "湖景邨湖翠樓",
+      "K52-D060": "屯門中央廣場",
+      "K52-D070": "青雲路",
+      "K52-D080": "聖公會聖西門呂明才中學",
+      "K52-D090": "三聖邨",
+      "K52-D100": "恆豐園",
+      "K52-D110": "置樂花園",
+      "K52-D120": "屯門官立中學",
+      "K52-D130": "屯門市中心",
+      "K52-D140": "屯門站",
+      "K52-D150": "輕鐵建安站",
+      "K52-D160": "輕鐵青雲站",
+      "K52-D170": "聖彼得堂",
+      "K52-D180": "富健花園",
+      "K52-D190": "新屯門中心",
+      "K52-D200": "輕鐵車廠",
+      "K52-D210": "輕鐵蝴蝶站",
+      "K52-D220": "美樂花園",
+      "K52-D230": "望后石",
+      "K52-D240": "環保園",
+      "K52-D250": "龍鼓灘 (總站)",
+      "K52-U010": "龍鼓灘 (總站)",
+      "K52-U020": "環保園",
+      "K52-U030": "望后石",
+      "K52-U040": "美樂花園",
+      "K52-U050": "輕鐵蝴蝶站",
+      "K52-U060": "輕鐵車廠",
+      "K52-U070": "新屯門中心",
+      "K52-U080": "富健花園",
+      "K52-U090": "聖彼得堂",
+      "K52-U100": "輕鐵青雲站",
+      "K52-U110": "輕鐵建安站",
+      "K52-U120": "屯門站",
+      "K52-U130": "屯門市中心",
+      "K52-U140": "屯興路",
+      "K52-U150": "置樂花園",
+      "K52-U160": "恆順園",
+      "K52-U170": "三聖邨",
+      "K52-U180": "聖公會聖西門呂明才中學",
+      "K52-U190": "青雲路",
+      "K52-U200": "屯門中央廣場",
+      "K52-U210": "湖景邨湖翠樓",
+      "K52-U220": "湖景邨湖畔樓",
+      "K52-U230": "屯門碼頭",
+      "K52-U240": "邁亞美海灣",
+      "K52-U250": "悅湖山莊 (總站)",
+
+      // K52A
+      "K52A-D010": "屯門站 (總站)",
+      "K52A-D020": "輕鐵建安站",
+      "K52A-D030": "輕鐵青雲站",
+      "K52A-D040": "聖彼得堂",
+      "K52A-D050": "富健花園",
+      "K52A-D060": "新屯門中心",
+      "K52A-D070": "輕鐵車廠",
+      "K52A-D080": "輕鐵蝴蝶站",
+      "K52A-D090": "美樂花園",
+      "K52A-D100": "望后石",
+      "K52A-D110": "環保園",
+      "K52A-D120": "曾咀 (總站)",
+      "K52A-U010": "曾咀 (總站)",
+      "K52A-U020": "環保園",
+      "K52A-U030": "望后石",
+      "K52A-U040": "美樂花園",
+      "K52A-U050": "輕鐵蝴蝶站",
+      "K52A-U060": "輕鐵車廠",
+      "K52A-U070": "新屯門中心",
+      "K52A-U080": "富健花園",
+      "K52A-U090": "聖彼得堂",
+      "K52A-U100": "輕鐵青雲站",
+      "K52A-U110": "輕鐵建安站",
+      "K52A-U120": "屯門站 (總站)",
+
+      // K53
+      "K53-D010": "屯門站 (總站)",
+      "K53-D020": "屯門市中心",
+      "K53-D030": "屯門官立中學",
+      "K53-D040": "恆順園",
+      "K53-D050": "恆豐園",
+      "K53-D060": "三聖",
+      "K53-D070": "青山灣",
+      "K53-D080": "海華路",
+      "K53-D090": "碧翠花園",
+      "K53-D100": "青山灣碼頭",
+      "K53-D110": "咖啡灣",
+      "K53-D120": "香港黃金海岸",
+      "K53-D130": "掃管笏變電站",
+      "K53-D140": "愛琴海岸",
+      "K53-D150": "掃管笏路",
+      "K53-D160": "掃管笏 (循環點)",
+
+      // K54
+      "K54-D010": "和田邨 (總站)",
+      "K54-D020": "菁田邨",
+      "K54-D030": "寶田邨",
+      "K54-D040": "兆康苑兆賢閣",
+      "K54-D050": "兆康站 (北)",
+      "K54-D060": "屯門醫院",
+      "K54-D070": "景峰花園",
+      "K54-D080": "屯門市中心 (循環點)",
+
+      // K58
+      "K58-D010": "富泰 (總站)",
+      "K58-D020": "嶺南大學",
+      "K58-D030": "彩暉花園",
+      "K58-D040": "兆康站 (南)",
+      "K58-D050": "良景邨",
+      "K58-D060": "山景邨",
+      "K58-D070": "屯門站",
+      "K58-D080": "屯門市中心",
+      "K58-D090": "青山灣 (總站)",
+      "K58-U010": "青山灣 (總站)",
+      "K58-U020": "屯門市中心",
+      "K58-U030": "屯門站",
+      "K58-U040": "山景邨",
+      "K58-U050": "良景邨",
+      "K58-U060": "兆康站 (南)",
+      "K58-U070": "彩暉花園",
+      "K58-U080": "嶺南大學",
+      "K58-U090": "富泰 (總站)",
+
+      // K66
+      "K66-D010": "朗屏邨悅屏樓",
+      "K76S-D010": "濕地公園路",
+      "K76S-D020": "天盛苑 / 港鐵天水圍站"
+    };
+
+    function registerMtrBusStation(stopId, name) {
+      if (!stopId || !name) return;
+      const raw = String(stopId).trim().toUpperCase();
+      const displayName = String(name).trim();
+      MTR_BUS_STATION_MAP[raw] = displayName;
+
+      const norm = raw.replace(/-N([DU])/, '-$1');
+      MTR_BUS_STATION_MAP[norm] = displayName;
+
+      const aliasN = norm.replace(/-([DU])/, '-N$1');
+      MTR_BUS_STATION_MAP[aliasN] = displayName;
+
+      const aliasLowerN = norm.replace(/-([DU])/, '-n$1');
+      MTR_BUS_STATION_MAP[aliasLowerN] = displayName;
+    }
+
+    // Populate and complement all MTR Bus extended loop/sequence station codes
+    (function initFullMtrBusMasterMap() {
+      // 506 (屯門碼頭 <-> 兆麟 Full Loop)
+      const stops506D = [
+        "屯門碼頭 (總站)", "美樂花園", "輕鐵蝴蝶站", "輕鐵車廠", "輕鐵龍門站",
+        "富健花園", "屯門站", "輕鐵市中心站", "輕鐵安定站", "兆麟 (總站)",
+        "輕鐵安定站", "輕鐵市中心站", "屯門站", "富健花園", "輕鐵龍門站",
+        "輕鐵車廠", "輕鐵蝴蝶站", "美樂花園", "屯門碼頭 (總站)"
+      ];
+      stops506D.forEach((name, i) => {
+        const num = String((i + 1) * 10).padStart(3, '0');
+        registerMtrBusStation(`506-D${num}`, name);
+      });
+
+      const stops506U = [
+        "兆麟 (總站)", "輕鐵安定站", "輕鐵市中心站", "屯門站", "富健花園",
+        "輕鐵龍門站", "輕鐵車廠", "輕鐵蝴蝶站", "美樂花園", "屯門碼頭 (總站)",
+        "美樂花園", "輕鐵蝴蝶站", "輕鐵車廠", "輕鐵龍門站", "富健花園",
+        "屯門站", "輕鐵市中心站", "輕鐵安定站", "兆麟 (總站)"
+      ];
+      stops506U.forEach((name, i) => {
+        const num = String((i + 1) * 10).padStart(3, '0');
+        registerMtrBusStation(`506-U${num}`, name);
+      });
+
+      // K53 (屯門站 - 掃管笏 循環綫)
+      const stopsK53D = [
+        "屯門站 (總站)", "屯門市中心", "屯門官立中學", "恆順園", "恆豐園",
+        "三聖", "青山灣", "海華路", "碧翠花園", "青山灣碼頭", "咖啡灣",
+        "香港黃金海岸", "掃管笏變電站", "愛琴海岸", "掃管笏路", "掃管笏 (循環點)",
+        "愛琴海岸", "掃管笏變電站", "香港黃金海岸", "咖啡灣", "青山灣碼頭",
+        "碧翠花園", "海華路", "青山灣", "三聖", "恆豐園", "恆順園",
+        "屯興路", "屯門市中心", "屯門站 (總站)"
+      ];
+      stopsK53D.forEach((name, i) => {
+        const num = String((i + 1) * 10).padStart(3, '0');
+        registerMtrBusStation(`K53-D${num}`, name);
+      });
+
+      // K54 (和田邨 - 屯門市中心 循環綫)
+      const stopsK54D = [
+        "和田邨 (總站)", "菁田邨", "寶田邨", "兆康苑兆賢閣", "兆康站 (北)",
+        "屯門醫院", "景峰花園", "屯門市中心 (循環點)", "新墟街市", "景峰花園",
+        "屯門醫院", "兆康站 (北)", "寶田邨", "菁田邨", "和田邨 (總站)"
+      ];
+      stopsK54D.forEach((name, i) => {
+        const num = String((i + 1) * 10).padStart(3, '0');
+        registerMtrBusStation(`K54-D${num}`, name);
+      });
+
+      // K68 (元朗公園 - 形點 循環綫)
+      const stopsK68D = [
+        "元朗公園 (總站)", "元朗劇院", "朗屏站", "元朗邨", "形點 I", "形點 II",
+        "元朗邨", "朗屏站", "元朗劇院", "元朗公園 (總站)"
+      ];
+      stopsK68D.forEach((name, i) => {
+        const num = String((i + 1) * 10).padStart(3, '0');
+        registerMtrBusStation(`K68-D${num}`, name);
+      });
+
+      // K74 (天瑞 - 凹頭 循環綫)
+      const stopsK74D = [
+        "天瑞邨 (總站)", "天水圍公園", "天耀邨", "天祐苑", "元朗廣場", "博愛醫院",
+        "凹頭 (循環點)", "博愛醫院", "同樂街", "谷亭街", "元朗廣場", "天祐苑",
+        "天耀邨", "天水圍公園", "天瑞邨 (總站)"
+      ];
+      stopsK74D.forEach((name, i) => {
+        const num = String((i + 1) * 10).padStart(3, '0');
+        registerMtrBusStation(`K74-D${num}`, name);
+      });
+
+      // K75A (天水圍站 - 洪水橋 循環綫)
+      const stopsK75AD = ["天水圍站 (總站)", "洪水橋站", "廈村", "洪水橋站", "天水圍站 (總站)"];
+      stopsK75AD.forEach((name, i) => {
+        const num = String((i + 1) * 10).padStart(3, '0');
+        registerMtrBusStation(`K75A-D${num}`, name);
+      });
+
+      // K75P (天瑞 - 洪水橋 循環綫)
+      const stopsK75PD = ["天瑞邨 (總站)", "洪水橋站", "廈村", "洪水橋站", "天瑞邨 (總站)"];
+      stopsK75PD.forEach((name, i) => {
+        const num = String((i + 1) * 10).padStart(3, '0');
+        registerMtrBusStation(`K75P-D${num}`, name);
+      });
+    })();
+
+    function isValidMtrBusStationName(name, stopId) {
+      if (name === null || name === undefined) return false;
+      const value = String(name).trim();
+      if (!value || value === String(stopId).trim()) return false;
+      if (/^(分站|站點|stop)\s*[0-9一二三四五六七八九十]+$/i.test(value)) return false;
+      return true;
+    }
+
+    function normalizeMtrBusStopId(stopId) {
+      let id = String(stopId || '').trim().toUpperCase().replace(/\s+/g, '');
+      id = id.replace(/-N([DU])([0-9]+)/, '-$1$2');
+      return id;
+    }
+
+    function setMtrBusStationName(stopId, name) {
+      if (!stopId || !isValidMtrBusStationName(name, stopId)) return;
+      const raw = String(stopId).trim();
+      const normalized = normalizeMtrBusStopId(raw);
+      const displayName = String(name).trim();
+      MTR_BUS_STATION_MAP[raw] = displayName;
+      MTR_BUS_STATION_MAP[normalized] = displayName;
+
+      const apiAlias = normalized.replace(/-([DU])([0-9]+)$/, '-n$1$2');
+      MTR_BUS_STATION_MAP[apiAlias] = displayName;
+    }
+
+    let mtrBusStationMasterLoaded = false;
+    let mtrBusStationMasterPromise = null;
+
+    function getMtrBusStationName(stopId, routeName, fallbackName, seq) {
+      const rawId = String(stopId || '').trim();
+      if (!rawId) return isValidMtrBusStationName(fallbackName, rawId) ? String(fallbackName).trim() : `站點 ${seq || ''}`;
+
+      const normalizedId = normalizeMtrBusStopId(rawId);
+      const upperRaw = rawId.toUpperCase();
+      const apiAliasUpper = normalizedId.replace(/-([DU])([0-9]+)$/, '-N$1$2');
+      const apiAliasLower = normalizedId.replace(/-([DU])([0-9]+)$/, '-n$1$2');
+
+      const mapped = MTR_BUS_STATION_MAP[rawId] ||
+                     MTR_BUS_STATION_MAP[upperRaw] ||
+                     MTR_BUS_STATION_MAP[normalizedId] ||
+                     MTR_BUS_STATION_MAP[apiAliasUpper] ||
+                     MTR_BUS_STATION_MAP[apiAliasLower];
+
+      if (isValidMtrBusStationName(mapped, rawId)) return mapped;
+
+      if (isValidMtrBusStationName(fallbackName, rawId)) {
+        return String(fallbackName).trim();
+      }
+
+      // Pattern matcher fallback for ROUTE-[nD]*[DU]NUM
+      const match = normalizedId.match(/^([A-Z0-9]+)-[N]?(D|U)([0-9]+)$/);
+      if (match) {
+        const route = match[1];
+        const dir = match[2];
+        const numVal = parseInt(match[3], 10);
+        const paddedNum = String(numVal).padStart(3, '0');
+        const candidateKey = `${route}-${dir}${paddedNum}`;
+
+        if (MTR_BUS_STATION_MAP[candidateKey]) {
+          return MTR_BUS_STATION_MAP[candidateKey];
+        }
+      }
+
+      return rawId ? `站點 (${rawId})` : `站點 ${seq || ''}`;
+    }
+
+    function parseSimpleCsv(text) {
+      const rows = [];
+      let row = [], cell = '', quoted = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"') {
+          if (quoted && text[i + 1] === '"') { cell += '"'; i++; }
+          else { quoted = !quoted; }
+        } else if (ch === ',' && !quoted) {
+          row.push(cell); cell = '';
+        } else if ((ch === '\n' || ch === '\r') && !quoted) {
+          if (ch === '\r' && text[i + 1] === '\n') i++;
+          row.push(cell); cell = '';
+          if (row.some(v => String(v).trim() !== '')) rows.push(row);
+          row = [];
+        } else {
+          cell += ch;
+        }
+      }
+      if (cell.length || row.length) {
+        row.push(cell);
+        if (row.some(v => String(v).trim() !== '')) rows.push(row);
+      }
+      return rows;
+    }
+
+    async function loadAllMtrBusStationsMaster() {
+      if (mtrBusStationMasterLoaded) return;
+      if (mtrBusStationMasterPromise) return mtrBusStationMasterPromise;
+
+      mtrBusStationMasterPromise = (async () => {
+      try {
+        const csvRes = await fetch('https://opendata.mtr.com.hk/data/mtr_bus_stops.csv', { cache: 'no-store' });
+        if (csvRes.ok) {
+          const csvText = await csvRes.text();
+          const rows = parseSimpleCsv(csvText).map(row => row.map(v => String(v).trim()));
+          if (rows.length > 1) {
+            const headers = rows[0].map(h => h.toLowerCase().replace(/[^a-z0-9一-龥]+/g, ''));
+            const findHeader = (patterns) => headers.findIndex(h => patterns.some(p => h.includes(p)));
+            const idIdx = findHeader(['busstopid', 'stopid', 'busstopcode', 'stopcode', '車站編號', '車站代號', '站點編號']);
+            const tcIdx = findHeader(['busstopnamechi', 'busstopnamech', 'chinesename', 'namechi', '名稱中文', '中文名稱', '車站名稱']);
+            const enIdx = findHeader(['busstopnameen', 'englishname', 'nameen', '英文名稱']);
+
+            if (idIdx >= 0) {
+              rows.slice(1).forEach(row => {
+                const id = row[idIdx];
+                const tcName = tcIdx >= 0 ? row[tcIdx] : '';
+                const enName = enIdx >= 0 ? row[enIdx] : '';
+                if (id && isValidMtrBusStationName(tcName, id)) setMtrBusStationName(id, tcName);
+                else if (id && isValidMtrBusStationName(enName, id)) setMtrBusStationName(id, enName);
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('載入港鐵巴士官方 CSV 站名庫失敗，繼續使用其他來源', err);
+      }
+
+      try {
+        const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getBusStop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: 'zh' })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data) ? data : (data.busStop || data.busStopList || data.data || []);
+          list.forEach(st => {
+            const id = st.busStopId || st.busStopCode || st.stopId || st.stop_code;
+            const name = st.busStopNameChi || st.busStopChineseName || st.busStopName || st.nameChi || st.name || st.stop_name_tc;
+            if (id && isValidMtrBusStationName(name, id)) setMtrBusStationName(id, name);
+          });
+        }
+      } catch (err) {
+        console.warn('動態載入港鐵巴士官方站名 API 失敗，將使用已載入站名庫', err);
+      }
+      mtrBusStationMasterLoaded = true;
+      })();
+      try {
+        await mtrBusStationMasterPromise;
+      } finally {
+        mtrBusStationMasterPromise = null;
+      }
+    }
+
+    const MTR_LINES = [
+      { code: 'TML', name: '屯馬綫 (Tuen Ma Line)', stations: [
+        { code: 'WKS', name: '烏溪沙' }, { code: 'MOS', name: '馬鞍山' }, { code: 'HEO', name: '恆安' },
+        { code: 'TSH', name: '大水坑' }, { code: 'SHM', name: '石門' }, { code: 'CIO', name: '第一城' },
+        { code: 'STW', name: '沙田圍' }, { code: 'CKT', name: '車公廟' }, { code: 'TAW', name: '大圍' },
+        { code: 'DIH', name: '鑽石山' }, { code: 'KAT', name: '啟德' }, { code: 'TKW', name: '土瓜灣' },
+        { code: 'HOM', name: '何文田' }, { code: 'HUH', name: '紅磡' }, { code: 'ETS', name: '尖東' },
+        { code: 'AUS', name: '柯士甸' }, { code: 'NAC', name: '南昌' }, { code: 'MEF', name: '美孚' },
+        { code: 'TWW', name: '荃灣西' }, { code: 'KSR', name: '錦上路' }, { code: 'YUL', name: '元朗' },
+        { code: 'LOP', name: '朗屏' }, { code: 'TIS', name: '天水圍' }, { code: 'SIH', name: '兆康' },
+        { code: 'TUM', name: '屯門' }
+      ]},
+      { code: 'TWL', name: '荃灣綫 (Tsuen Wan Line)', stations: [
+        { code: 'TSU', name: '荃灣' }, { code: 'TWH', name: '大窩口' }, { code: 'KWH', name: '葵興' },
+        { code: 'KWF', name: '葵芳' }, { code: 'MEF', name: '美孚' }, { code: 'LCK', name: '荔枝角' },
+        { code: 'CSW', name: '長沙灣' }, { code: 'SSP', name: '深水埗' }, { code: 'PRE', name: '太子' },
+        { code: 'MOK', name: '旺角' }, { code: 'YMT', name: '油麻地' }, { code: 'JOR', name: '佐敦' },
+        { code: 'TST', name: '尖沙咀' }, { code: 'ADM', name: '金鐘' }, { code: 'CEN', name: '中環' }
+      ]},
+      { code: 'ISL', name: '港島綫 (Island Line)', stations: [
+        { code: 'KET', name: '堅尼地城' }, { code: 'HKU', name: '香港大學' }, { code: 'SYP', name: '西營盤' },
+        { code: 'SHW', name: '上環' }, { code: 'CEN', name: '中環' }, { code: 'ADM', name: '金鐘' },
+        { code: 'WAC', name: '灣仔' }, { code: 'CWB', name: '銅鑼灣' }, { code: 'TIH', name: '天后' },
+        { code: 'FOH', name: '炮台山' }, { code: 'NOP', name: '北角' }, { code: 'QUB', name: '鰂魚涌' },
+        { code: 'TAK', name: '太古' }, { code: 'SWH', name: '西灣河' }, { code: 'SKW', name: '筲箕灣' },
+        { code: 'HFC', name: '杏花邨' }, { code: 'CHW', name: '柴灣' }
+      ]},
+      { code: 'EAL', name: '東鐵綫 (East Rail Line)', stations: [
+        { code: 'ADM', name: '金鐘' }, { code: 'EXC', name: '會展' }, { code: 'HUH', name: '紅磡' },
+        { code: 'MKK', name: '旺角東' }, { code: 'KOT', name: '九龍塘' }, { code: 'TAW', name: '大圍' },
+        { code: 'SHT', name: '沙田' }, { code: 'FOT', name: '火炭' }, { code: 'RAC', name: '馬場' }, { code: 'UNI', name: '大學' },
+        { code: 'TAP', name: '大埔墟' }, { code: 'TWO', name: '太和' }, { code: 'FAN', name: '粉嶺' },
+        { code: 'SHS', name: '上水' }, { code: 'LOW', name: '羅湖' }, { code: 'LMU', name: '落馬洲' }
+      ]},
+      { code: 'KTL', name: '觀塘綫 (Kwun Tong Line)', stations: [
+        { code: 'WHA', name: '黃埔' }, { code: 'HOM', name: '何文田' }, { code: 'YMT', name: '油麻地' },
+        { code: 'MOK', name: '旺角' }, { code: 'PRE', name: '太子' }, { code: 'SKM', name: '石硤尾' },
+        { code: 'KOT', name: '九龍塘' }, { code: 'LOF', name: '樂富' }, { code: 'WTS', name: '黃大仙' },
+        { code: 'CHH', name: '彩虹' }, { code: 'KHO', name: '九龍灣' }, { code: 'NTK', name: '牛頭角' },
+        { code: 'KWT', name: '觀塘' }, { code: 'YAT', name: '油塘' }, { code: 'TTI', name: '調景嶺' }
+      ]},
+      { code: 'TCL', name: '東涌綫 (Tung Chung Line)', stations: [
+        { code: 'HOK', name: '香港' }, { code: 'KOW', name: '九龍' }, { code: 'OLY', name: '奧運' },
+        { code: 'NAC', name: '南昌' }, { code: 'LAK', name: '荔景' }, { code: 'TSY', name: '青衣' },
+        { code: 'SUN', name: '欣澳' }, { code: 'TUC', name: '東涌' }
+      ]},
+      { code: 'SIL', name: '南港島綫 (South Island Line)', stations: [
+        { code: 'ADM', name: '金鐘' }, { code: 'OCP', name: '海洋公園' }, { code: 'WCH', name: '黃竹坑' },
+        { code: 'LET', name: '利東' }, { code: 'SOH', name: '海怡半島' }
+      ]},
+      { code: 'TKL', name: '將軍澳綫 (Tseung Kwan O Line)', stations: [
+        { code: 'NOP', name: '北角' }, { code: 'QUB', name: '鰂魚涌' }, { code: 'YAT', name: '油塘' },
+        { code: 'TIK', name: '調景嶺' }, { code: 'TKO', name: '將軍澳' }, { code: 'LHP', name: '康城' },
+        { code: 'HAH', name: '坑口' }, { code: 'POA', name: '寶琳' }
+      ]},
+      { code: 'AEL', name: '機場快綫 (Airport Express)', stations: [
+        { code: 'HOK', name: '香港' }, { code: 'KOW', name: '九龍' }, { code: 'TSY', name: '青衣' },
+        { code: 'AIR', name: '機場' }, { code: 'AWE', name: '博覽館' }
+      ]},
+      { code: 'DRL', name: '迪士尼綫 (Disneyland Resort Line)', stations: [
+        { code: 'SUN', name: '欣澳' }, { code: 'DIS', name: '迪士尼' }
+      ]}
+    ];
+
+    // LIGHT RAIL (LRT) ROUTE & STATIONS DATABASE
+    const LRT_ROUTES = [
+      {
+        "route": "505",
+        "stations": [
+          { "id": "920", "name": "三聖" }, { "id": "265", "name": "兆麟" }, { "id": "270", "name": "安定" },
+          { "id": "280", "name": "市中心" }, { "id": "295", "name": "屯門" }, { "id": "60", "name": "建安" },
+          { "id": "190", "name": "山景(南)" }, { "id": "180", "name": "山景(北)" }, { "id": "170", "name": "石排" },
+          { "id": "160", "name": "新圍" }, { "id": "150", "name": "良景" }, { "id": "140", "name": "田景" },
+          { "id": "130", "name": "建生" }, { "id": "120", "name": "青松" }, { "id": "110", "name": "麒麟" },
+          { "id": "100", "name": "兆康" }, { "id": "200", "name": "鳴琴" }
+        ],
+        "directions": {
+          "1": [{ "id": "920", "name": "三聖" }, { "id": "265", "name": "兆麟" }, { "id": "270", "name": "安定" }, { "id": "280", "name": "市中心" }, { "id": "295", "name": "屯門" }, { "id": "60", "name": "建安" }, { "id": "190", "name": "山景(南)" }, { "id": "180", "name": "山景(北)" }, { "id": "170", "name": "石排" }, { "id": "160", "name": "新圍" }, { "id": "150", "name": "良景" }, { "id": "140", "name": "田景" }, { "id": "130", "name": "建生" }, { "id": "120", "name": "青松" }, { "id": "110", "name": "麒麟" }, { "id": "100", "name": "兆康" }],
+          "2": [{ "id": "100", "name": "兆康" }, { "id": "120", "name": "青松" }, { "id": "130", "name": "建生" }, { "id": "140", "name": "田景" }, { "id": "150", "name": "良景" }, { "id": "160", "name": "新圍" }, { "id": "170", "name": "石排" }, { "id": "200", "name": "鳴琴" }, { "id": "60", "name": "建安" }, { "id": "295", "name": "屯門" }, { "id": "280", "name": "市中心" }, { "id": "270", "name": "安定" }, { "id": "265", "name": "兆麟" }, { "id": "920", "name": "三聖" }]
+        }
+      },
+      {
+        "route": "507",
+        "stations": [
+          { "id": "1", "name": "屯門碼頭" }, { "id": "240", "name": "兆禧" }, { "id": "250", "name": "海皇路" },
+          { "id": "260", "name": "豐景園" }, { "id": "265", "name": "兆麟" }, { "id": "270", "name": "安定" },
+          { "id": "280", "name": "市中心" }, { "id": "295", "name": "屯門" }, { "id": "70", "name": "河田" },
+          { "id": "75", "name": "蔡意橋" }, { "id": "230", "name": "銀圍" }, { "id": "220", "name": "大興(南)" },
+          { "id": "212", "name": "大興(北)" }, { "id": "160", "name": "新圍" }, { "id": "150", "name": "良景" },
+          { "id": "140", "name": "田景" }
+        ],
+        "directions": {
+          "1": [{ "id": "1", "name": "屯門碼頭" }, { "id": "240", "name": "兆禧" }, { "id": "250", "name": "海皇路" }, { "id": "260", "name": "豐景園" }, { "id": "265", "name": "兆麟" }, { "id": "270", "name": "安定" }, { "id": "280", "name": "市中心" }, { "id": "295", "name": "屯門" }, { "id": "70", "name": "河田" }, { "id": "75", "name": "蔡意橋" }, { "id": "230", "name": "銀圍" }, { "id": "220", "name": "大興(南)" }, { "id": "212", "name": "大興(北)" }, { "id": "160", "name": "新圍" }, { "id": "150", "name": "良景" }, { "id": "140", "name": "田景" }],
+          "2": [{ "id": "140", "name": "田景" }, { "id": "150", "name": "良景" }, { "id": "160", "name": "新圍" }, { "id": "212", "name": "大興(北)" }, { "id": "220", "name": "大興(南)" }, { "id": "230", "name": "銀圍" }, { "id": "75", "name": "蔡意橋" }, { "id": "70", "name": "河田" }, { "id": "295", "name": "屯門" }, { "id": "280", "name": "市中心" }, { "id": "270", "name": "安定" }, { "id": "265", "name": "兆麟" }, { "id": "260", "name": "豐景園" }, { "id": "250", "name": "海皇路" }, { "id": "240", "name": "兆禧" }, { "id": "1", "name": "屯門碼頭" }]
+        }
+      },
+      {
+        "route": "610",
+        "stations": [
+          { "id": "1", "name": "屯門碼頭" }, { "id": "10", "name": "美樂" }, { "id": "15", "name": "蝴蝶" },
+          { "id": "20", "name": "輕鐵車廠" }, { "id": "30", "name": "龍門" }, { "id": "40", "name": "青山村" },
+          { "id": "50", "name": "青雲" }, { "id": "200", "name": "鳴琴" }, { "id": "170", "name": "石排" },
+          { "id": "212", "name": "大興(北)" }, { "id": "220", "name": "大興(南)" }, { "id": "230", "name": "銀圍" },
+          { "id": "80", "name": "澤豐" }, { "id": "90", "name": "屯門醫院" }, { "id": "100", "name": "兆康" },
+          { "id": "350", "name": "藍地" }, { "id": "360", "name": "泥圍" }, { "id": "370", "name": "鍾屋村" },
+          { "id": "380", "name": "洪水橋" }, { "id": "390", "name": "塘坊村" }, { "id": "400", "name": "屏山" },
+          { "id": "560", "name": "水邊圍" }, { "id": "570", "name": "豐年路" }, { "id": "580", "name": "康樂路" },
+          { "id": "590", "name": "大棠路" }, { "id": "600", "name": "元朗" }
+        ],
+        "directions": {
+          "1": [{ "id": "1", "name": "屯門碼頭" }, { "id": "10", "name": "美樂" }, { "id": "15", "name": "蝴蝶" }, { "id": "20", "name": "輕鐵車廠" }, { "id": "30", "name": "龍門" }, { "id": "40", "name": "青山村" }, { "id": "50", "name": "青雲" }, { "id": "200", "name": "鳴琴" }, { "id": "170", "name": "石排" }, { "id": "212", "name": "大興(北)" }, { "id": "220", "name": "大興(南)" }, { "id": "230", "name": "銀圍" }, { "id": "80", "name": "澤豐" }, { "id": "90", "name": "屯門醫院" }, { "id": "100", "name": "兆康" }, { "id": "350", "name": "藍地" }, { "id": "360", "name": "泥圍" }, { "id": "370", "name": "鍾屋村" }, { "id": "380", "name": "洪水橋" }, { "id": "390", "name": "塘坊村" }, { "id": "400", "name": "屏山" }, { "id": "560", "name": "水邊圍" }, { "id": "570", "name": "豐年路" }, { "id": "580", "name": "康樂路" }, { "id": "590", "name": "大棠路" }, { "id": "600", "name": "元朗" }],
+          "2": [{ "id": "600", "name": "元朗" }, { "id": "590", "name": "大棠路" }, { "id": "580", "name": "康樂路" }, { "id": "570", "name": "豐年路" }, { "id": "560", "name": "水邊圍" }, { "id": "400", "name": "屏山" }, { "id": "390", "name": "塘坊村" }, { "id": "380", "name": "洪水橋" }, { "id": "370", "name": "鍾屋村" }, { "id": "360", "name": "泥圍" }, { "id": "350", "name": "藍地" }, { "id": "100", "name": "兆康" }, { "id": "90", "name": "屯門醫院" }, { "id": "80", "name": "澤豐" }, { "id": "230", "name": "銀圍" }, { "id": "220", "name": "大興(南)" }, { "id": "212", "name": "大興(北)" }, { "id": "170", "name": "石排" }, { "id": "200", "name": "鳴琴" }, { "id": "50", "name": "青雲" }, { "id": "40", "name": "青山村" }, { "id": "30", "name": "龍門" }, { "id": "20", "name": "輕鐵車廠" }, { "id": "15", "name": "蝴蝶" }, { "id": "10", "name": "美樂" }, { "id": "1", "name": "屯門碼頭" }]
+        }
+      },
+      {
+        "route": "614",
+        "stations": [
+          { "id": "1", "name": "屯門碼頭" }, { "id": "240", "name": "兆禧" }, { "id": "250", "name": "海皇路" },
+          { "id": "260", "name": "豐景園" }, { "id": "265", "name": "兆麟" }, { "id": "270", "name": "安定" },
+          { "id": "280", "name": "市中心" }, { "id": "300", "name": "杯渡" }, { "id": "310", "name": "何福堂" },
+          { "id": "320", "name": "新墟" }, { "id": "330", "name": "景峰" }, { "id": "340", "name": "鳳地" },
+          { "id": "100", "name": "兆康" }, { "id": "350", "name": "藍地" }, { "id": "360", "name": "泥圍" },
+          { "id": "370", "name": "鍾屋村" }, { "id": "380", "name": "洪水橋" }, { "id": "390", "name": "塘坊村" },
+          { "id": "400", "name": "屏山" }, { "id": "560", "name": "水邊圍" }, { "id": "570", "name": "豐年路" },
+          { "id": "580", "name": "康樂路" }, { "id": "590", "name": "大棠路" }, { "id": "600", "name": "元朗" }
+        ],
+        "directions": {
+          "1": [{ "id": "1", "name": "屯門碼頭" }, { "id": "240", "name": "兆禧" }, { "id": "250", "name": "海皇路" }, { "id": "260", "name": "豐景園" }, { "id": "265", "name": "兆麟" }, { "id": "270", "name": "安定" }, { "id": "280", "name": "市中心" }, { "id": "300", "name": "杯渡" }, { "id": "310", "name": "何福堂" }, { "id": "320", "name": "新墟" }, { "id": "330", "name": "景峰" }, { "id": "340", "name": "鳳地" }, { "id": "100", "name": "兆康" }, { "id": "350", "name": "藍地" }, { "id": "360", "name": "泥圍" }, { "id": "370", "name": "鍾屋村" }, { "id": "380", "name": "洪水橋" }, { "id": "390", "name": "塘坊村" }, { "id": "400", "name": "屏山" }, { "id": "560", "name": "水邊圍" }, { "id": "570", "name": "豐年路" }, { "id": "580", "name": "康樂路" }, { "id": "590", "name": "大棠路" }, { "id": "600", "name": "元朗" }],
+          "2": [{ "id": "600", "name": "元朗" }, { "id": "590", "name": "大棠路" }, { "id": "580", "name": "康樂路" }, { "id": "570", "name": "豐年路" }, { "id": "560", "name": "水邊圍" }, { "id": "400", "name": "屏山" }, { "id": "390", "name": "塘坊村" }, { "id": "380", "name": "洪水橋" }, { "id": "370", "name": "鍾屋村" }, { "id": "360", "name": "泥圍" }, { "id": "350", "name": "藍地" }, { "id": "100", "name": "兆康" }, { "id": "340", "name": "鳳地" }, { "id": "330", "name": "景峰" }, { "id": "320", "name": "新墟" }, { "id": "310", "name": "何福堂" }, { "id": "300", "name": "杯渡" }, { "id": "280", "name": "市中心" }, { "id": "270", "name": "安定" }, { "id": "265", "name": "兆麟" }, { "id": "260", "name": "豐景園" }, { "id": "250", "name": "海皇路" }, { "id": "240", "name": "兆禧" }, { "id": "1", "name": "屯門碼頭" }]
+        }
+      },
+      {
+        "route": "615",
+        "stations": [
+          { "id": "1", "name": "屯門碼頭" }, { "id": "10", "name": "美樂" }, { "id": "15", "name": "蝴蝶" },
+          { "id": "20", "name": "輕鐵車廠" }, { "id": "30", "name": "龍門" }, { "id": "40", "name": "青山村" },
+          { "id": "50", "name": "青雲" }, { "id": "200", "name": "鳴琴" }, { "id": "170", "name": "石排" },
+          { "id": "160", "name": "新圍" }, { "id": "150", "name": "良景" }, { "id": "140", "name": "田景" },
+          { "id": "130", "name": "建生" }, { "id": "120", "name": "青松" }, { "id": "100", "name": "兆康" },
+          { "id": "350", "name": "藍地" }, { "id": "360", "name": "泥圍" }, { "id": "370", "name": "鍾屋村" },
+          { "id": "380", "name": "洪水橋" }, { "id": "390", "name": "塘坊村" }, { "id": "400", "name": "屏山" },
+          { "id": "560", "name": "水邊圍" }, { "id": "570", "name": "豐年路" }, { "id": "580", "name": "康樂路" },
+          { "id": "590", "name": "大棠路" }, { "id": "600", "name": "元朗" }
+        ],
+        "directions": {
+          "1": [{ "id": "1", "name": "屯門碼頭" }, { "id": "10", "name": "美樂" }, { "id": "15", "name": "蝴蝶" }, { "id": "20", "name": "輕鐵車廠" }, { "id": "30", "name": "龍門" }, { "id": "40", "name": "青山村" }, { "id": "50", "name": "青雲" }, { "id": "200", "name": "鳴琴" }, { "id": "170", "name": "石排" }, { "id": "160", "name": "新圍" }, { "id": "150", "name": "良景" }, { "id": "140", "name": "田景" }, { "id": "130", "name": "建生" }, { "id": "120", "name": "青松" }, { "id": "100", "name": "兆康" }, { "id": "350", "name": "藍地" }, { "id": "360", "name": "泥圍" }, { "id": "370", "name": "鍾屋村" }, { "id": "380", "name": "洪水橋" }, { "id": "390", "name": "塘坊村" }, { "id": "400", "name": "屏山" }, { "id": "560", "name": "水邊圍" }, { "id": "570", "name": "豐年路" }, { "id": "580", "name": "康樂路" }, { "id": "590", "name": "大棠路" }, { "id": "600", "name": "元朗" }],
+          "2": [{ "id": "600", "name": "元朗" }, { "id": "590", "name": "大棠路" }, { "id": "580", "name": "康樂路" }, { "id": "570", "name": "豐年路" }, { "id": "560", "name": "水邊圍" }, { "id": "400", "name": "屏山" }, { "id": "390", "name": "塘坊村" }, { "id": "380", "name": "洪水橋" }, { "id": "370", "name": "鍾屋村" }, { "id": "360", "name": "泥圍" }, { "id": "350", "name": "藍地" }, { "id": "100", "name": "兆康" }, { "id": "120", "name": "青松" }, { "id": "130", "name": "建生" }, { "id": "140", "name": "田景" }, { "id": "150", "name": "良景" }, { "id": "160", "name": "新圍" }, { "id": "170", "name": "石排" }, { "id": "200", "name": "鳴琴" }, { "id": "50", "name": "青雲" }, { "id": "40", "name": "青山村" }, { "id": "30", "name": "龍門" }, { "id": "20", "name": "輕鐵車廠" }, { "id": "15", "name": "蝴蝶" }, { "id": "10", "name": "美樂" }, { "id": "1", "name": "屯門碼頭" }]
+        }
+      },
+      {
+        "route": "705",
+        "stations": [
+          { "id": "430", "name": "天水圍" }, { "id": "435", "name": "天慈" }, { "id": "450", "name": "天湖" },
+          { "id": "455", "name": "銀座" }, { "id": "500", "name": "天榮" }, { "id": "510", "name": "天悅" },
+          { "id": "520", "name": "天秀" }, { "id": "530", "name": "濕地公園" }, { "id": "540", "name": "天恒" },
+          { "id": "550", "name": "天逸" }, { "id": "480", "name": "天富" }, { "id": "468", "name": "頌富" },
+          { "id": "460", "name": "天瑞" }, { "id": "448", "name": "樂湖" }, { "id": "445", "name": "天耀" }
+        ],
+        "directions": {
+          "1": [{ "id": "430", "name": "天水圍" }, { "id": "435", "name": "天慈" }, { "id": "450", "name": "天湖" }, { "id": "455", "name": "銀座" }, { "id": "500", "name": "天榮" }],
+          "2": [{ "id": "500", "name": "天榮" }, { "id": "510", "name": "天悅" }, { "id": "520", "name": "天秀" }, { "id": "530", "name": "濕地公園" }, { "id": "540", "name": "天恒" }, { "id": "550", "name": "天逸" }, { "id": "480", "name": "天富" }, { "id": "468", "name": "頌富" }, { "id": "460", "name": "天瑞" }, { "id": "448", "name": "樂湖" }, { "id": "445", "name": "天耀" }, { "id": "430", "name": "天水圍" }]
+        }
+      },
+      {
+        "route": "706",
+        "stations": [
+          { "id": "430", "name": "天水圍" }, { "id": "445", "name": "天耀" }, { "id": "448", "name": "樂湖" },
+          { "id": "460", "name": "天瑞" }, { "id": "468", "name": "頌富" }, { "id": "480", "name": "天富" },
+          { "id": "550", "name": "天逸" }, { "id": "540", "name": "天恒" }, { "id": "530", "name": "濕地公園" },
+          { "id": "520", "name": "天秀" }, { "id": "510", "name": "天悅" }, { "id": "500", "name": "天榮" },
+          { "id": "455", "name": "銀座" }, { "id": "450", "name": "天湖" }, { "id": "435", "name": "天慈" }
+        ],
+        "directions": {
+          "1": [{ "id": "430", "name": "天水圍" }, { "id": "445", "name": "天耀" }, { "id": "448", "name": "樂湖" }, { "id": "460", "name": "天瑞" }, { "id": "468", "name": "頌富" }, { "id": "480", "name": "天富" }, { "id": "550", "name": "天逸" }, { "id": "540", "name": "天恒" }, { "id": "530", "name": "濕地公園" }, { "id": "520", "name": "天秀" }, { "id": "510", "name": "天悅" }, { "id": "500", "name": "天榮" }],
+          "2": [{ "id": "500", "name": "天榮" }, { "id": "455", "name": "銀座" }, { "id": "450", "name": "天湖" }, { "id": "435", "name": "天慈" }, { "id": "430", "name": "天水圍" }]
+        }
+      },
+      {
+        "route": "751",
+        "stations": [
+          { "id": "275", "name": "友愛" }, { "id": "270", "name": "安定" }, { "id": "280", "name": "市中心" },
+          { "id": "295", "name": "屯門" }, { "id": "70", "name": "河田" }, { "id": "75", "name": "蔡意橋" },
+          { "id": "80", "name": "澤豐" }, { "id": "90", "name": "屯門醫院" }, { "id": "100", "name": "兆康" },
+          { "id": "350", "name": "藍地" }, { "id": "360", "name": "泥圍" }, { "id": "370", "name": "鍾屋村" },
+          { "id": "380", "name": "洪水橋" }, { "id": "425", "name": "坑尾村" }, { "id": "430", "name": "天水圍" },
+          { "id": "435", "name": "天慈" }, { "id": "450", "name": "天湖" }, { "id": "455", "name": "銀座" },
+          { "id": "500", "name": "天榮" }, { "id": "490", "name": "翠湖" }, { "id": "468", "name": "頌富" },
+          { "id": "480", "name": "天富" }, { "id": "550", "name": "天逸" }
+        ],
+        "directions": {
+          "1": [{ "id": "275", "name": "友愛" }, { "id": "270", "name": "安定" }, { "id": "280", "name": "市中心" }, { "id": "295", "name": "屯門" }, { "id": "70", "name": "河田" }, { "id": "75", "name": "蔡意橋" }, { "id": "80", "name": "澤豐" }, { "id": "90", "name": "屯門醫院" }, { "id": "100", "name": "兆康" }, { "id": "350", "name": "藍地" }, { "id": "360", "name": "泥圍" }, { "id": "370", "name": "鍾屋村" }, { "id": "380", "name": "洪水橋" }, { "id": "425", "name": "坑尾村" }, { "id": "430", "name": "天水圍" }, { "id": "435", "name": "天慈" }, { "id": "450", "name": "天湖" }, { "id": "455", "name": "銀座" }, { "id": "500", "name": "天榮" }, { "id": "490", "name": "翠湖" }, { "id": "468", "name": "頌富" }, { "id": "480", "name": "天富" }, { "id": "550", "name": "天逸" }],
+          "2": [{ "id": "550", "name": "天逸" }, { "id": "480", "name": "天富" }, { "id": "468", "name": "頌富" }, { "id": "490", "name": "翠湖" }, { "id": "500", "name": "天榮" }, { "id": "455", "name": "銀座" }, { "id": "450", "name": "天湖" }, { "id": "435", "name": "天慈" }, { "id": "430", "name": "天水圍" }, { "id": "425", "name": "坑尾村" }, { "id": "380", "name": "洪水橋" }, { "id": "370", "name": "鍾屋村" }, { "id": "360", "name": "泥圍" }, { "id": "350", "name": "藍地" }, { "id": "100", "name": "兆康" }, { "id": "90", "name": "屯門醫院" }, { "id": "80", "name": "澤豐" }, { "id": "75", "name": "蔡意橋" }, { "id": "70", "name": "河田" }, { "id": "295", "name": "屯門" }, { "id": "280", "name": "市中心" }, { "id": "275", "name": "友愛" }]
+        }
+      },
+      {
+        "route": "614P",
+        "stations": [
+          { "id": "1", "name": "屯門碼頭" }, { "id": "240", "name": "兆禧" }, { "id": "250", "name": "海皇路" },
+          { "id": "260", "name": "豐景園" }, { "id": "265", "name": "兆麟" }, { "id": "270", "name": "安定" },
+          { "id": "280", "name": "市中心" }, { "id": "300", "name": "杯渡" }, { "id": "310", "name": "何福堂" },
+          { "id": "320", "name": "新墟" }, { "id": "330", "name": "景峰" }, { "id": "340", "name": "鳳地" },
+          { "id": "100", "name": "兆康" }
+        ],
+        "directions": {
+          "1": [{ "id": "1", "name": "屯門碼頭" }, { "id": "240", "name": "兆禧" }, { "id": "250", "name": "海皇路" }, { "id": "260", "name": "豐景園" }, { "id": "265", "name": "兆麟" }, { "id": "270", "name": "安定" }, { "id": "280", "name": "市中心" }, { "id": "300", "name": "杯渡" }, { "id": "310", "name": "何福堂" }, { "id": "320", "name": "新墟" }, { "id": "330", "name": "景峰" }, { "id": "340", "name": "鳳地" }, { "id": "100", "name": "兆康" }],
+          "2": [{ "id": "100", "name": "兆康" }, { "id": "340", "name": "鳳地" }, { "id": "330", "name": "景峰" }, { "id": "320", "name": "新墟" }, { "id": "310", "name": "何福堂" }, { "id": "300", "name": "杯渡" }, { "id": "280", "name": "市中心" }, { "id": "270", "name": "安定" }, { "id": "265", "name": "兆麟" }, { "id": "260", "name": "豐景園" }, { "id": "250", "name": "海皇路" }, { "id": "240", "name": "兆禧" }, { "id": "1", "name": "屯門碼頭" }]
+        }
+      },
+      {
+        "route": "615P",
+        "stations": [
+          { "id": "1", "name": "屯門碼頭" }, { "id": "10", "name": "美樂" }, { "id": "15", "name": "蝴蝶" },
+          { "id": "20", "name": "輕鐵車廠" }, { "id": "30", "name": "龍門" }, { "id": "40", "name": "青山村" },
+          { "id": "50", "name": "青雲" }, { "id": "200", "name": "鳴琴" }, { "id": "170", "name": "石排" },
+          { "id": "160", "name": "新圍" }, { "id": "150", "name": "良景" }, { "id": "140", "name": "田景" },
+          { "id": "130", "name": "建生" }, { "id": "120", "name": "青松" }, { "id": "110", "name": "麒麟" },
+          { "id": "100", "name": "兆康" }
+        ],
+        "directions": {
+          "1": [{ "id": "1", "name": "屯門碼頭" }, { "id": "10", "name": "美樂" }, { "id": "15", "name": "蝴蝶" }, { "id": "20", "name": "輕鐵車廠" }, { "id": "30", "name": "龍門" }, { "id": "40", "name": "青山村" }, { "id": "50", "name": "青雲" }, { "id": "200", "name": "鳴琴" }, { "id": "170", "name": "石排" }, { "id": "160", "name": "新圍" }, { "id": "150", "name": "良景" }, { "id": "140", "name": "田景" }, { "id": "130", "name": "建生" }, { "id": "120", "name": "青松" }, { "id": "110", "name": "麒麟" }, { "id": "100", "name": "兆康" }],
+          "2": [{ "id": "100", "name": "兆康" }, { "id": "110", "name": "麒麟" }, { "id": "120", "name": "青松" }, { "id": "130", "name": "建生" }, { "id": "140", "name": "田景" }, { "id": "150", "name": "良景" }, { "id": "160", "name": "新圍" }, { "id": "170", "name": "石排" }, { "id": "200", "name": "鳴琴" }, { "id": "50", "name": "青雲" }, { "id": "40", "name": "青山村" }, { "id": "30", "name": "龍門" }, { "id": "20", "name": "輕鐵車廠" }, { "id": "15", "name": "蝴蝶" }, { "id": "10", "name": "美樂" }, { "id": "1", "name": "屯門碼頭" }]
+        }
+      },
+      {
+        "route": "761P",
+        "stations": [
+          { "id": "550", "name": "天逸" }, { "id": "480", "name": "天富" }, { "id": "468", "name": "頌富" },
+          { "id": "460", "name": "天瑞" }, { "id": "448", "name": "樂湖" }, { "id": "445", "name": "天耀" },
+          { "id": "425", "name": "坑尾村" }, { "id": "390", "name": "塘坊村" }, { "id": "400", "name": "屏山" },
+          { "id": "560", "name": "水邊圍" }, { "id": "570", "name": "豐年路" }, { "id": "580", "name": "康樂路" },
+          { "id": "590", "name": "大棠路" }, { "id": "600", "name": "元朗" }
+        ],
+        "directions": {
+          "1": [{ "id": "550", "name": "天逸" }, { "id": "480", "name": "天富" }, { "id": "468", "name": "頌富" }, { "id": "460", "name": "天瑞" }, { "id": "448", "name": "樂湖" }, { "id": "445", "name": "天耀" }, { "id": "425", "name": "坑尾村" }, { "id": "390", "name": "塘坊村" }, { "id": "400", "name": "屏山" }, { "id": "560", "name": "水邊圍" }, { "id": "570", "name": "豐年路" }, { "id": "580", "name": "康樂路" }, { "id": "590", "name": "大棠路" }, { "id": "600", "name": "元朗" }],
+          "2": [{ "id": "600", "name": "元朗" }, { "id": "590", "name": "大棠路" }, { "id": "580", "name": "康樂路" }, { "id": "570", "name": "豐年路" }, { "id": "560", "name": "水邊圍" }, { "id": "400", "name": "屏山" }, { "id": "390", "name": "塘坊村" }, { "id": "425", "name": "坑尾村" }, { "id": "445", "name": "天耀" }, { "id": "448", "name": "樂湖" }, { "id": "460", "name": "天瑞" }, { "id": "468", "name": "頌富" }, { "id": "480", "name": "天富" }, { "id": "550", "name": "天逸" }]
+        }
+      }
+    ];
+
+    function getLrtRouteInfo(routeNo) {
+      return LRT_ROUTES.find(r => r.route === String(routeNo));
+    }
+
+    function getLrtDirectionSequences(routeInfo) {
+      if (!routeInfo) return [];
+      if (routeInfo.directions) {
+        return Object.keys(routeInfo.directions).sort((a, b) => Number(a) - Number(b)).map(k => routeInfo.directions[k]);
+      }
+      return [routeInfo.stations || []];
+    }
+
+    function getLrtRouteStationUnion(routeInfo) {
+      if (!routeInfo) return [];
+      const map = new Map();
+      getLrtDirectionSequences(routeInfo).forEach(seq => {
+        seq.forEach(st => {
+          if (!map.has(st.id)) map.set(st.id, st.name);
+        });
+      });
+      return Array.from(map, ([id, name]) => ({ id, name }));
+    }
+
+    function getAllLrtStations() {
+      const map = new Map();
+      LRT_ROUTES.forEach(routeInfo => {
+        getLrtRouteStationUnion(routeInfo).forEach(st => {
+          if (!map.has(st.id)) map.set(st.id, st.name);
+        });
+      });
+      return Array.from(map, ([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'zh-HK'));
+    }
+
+    function getReachableLrtDestinations(routeInfo, originStationId) {
+      if (!routeInfo) return [];
+      const result = new Map();
+      getLrtDirectionSequences(routeInfo).forEach(seq => {
+        const originIdx = seq.findIndex(st => st.id === originStationId);
+        if (originIdx === -1) return;
+        for (let i = originIdx + 1; i < seq.length; i++) {
+          const st = seq[i];
+          if (!result.has(st.id)) result.set(st.id, st.name);
+        }
+      });
+      return Array.from(result, ([id, name]) => ({ id, name }));
+    }
+
+    const DEFAULT_CONFIG = {
+      weatherStation: '京士柏',
+      countdownMode: 'AUTO_HK_HOLIDAY',
+      countdownTitle: '',
+      countdownDate: '',
+      routes: []
+    };
+
+    let appConfig = JSON.parse(localStorage.getItem('hk_dashboard_config_v5')) || DEFAULT_CONFIG;
+    let selectedOperator = 'KMB';
+    let fetchedBusRoutes = [];
+
+    function migrateSavedLrtRoutes() {
+      if (!appConfig || !Array.isArray(appConfig.routes)) return;
+
+      const stations = getAllLrtStations();
+      const byName = new Map();
+      stations.forEach(st => byName.set(normalizeStationName(st.name), st));
+
+      let changed = false;
+
+      appConfig.routes.forEach(route => {
+        if (!route || route.type !== 'LRT') return;
+
+        const originNorm = normalizeStationName(route.origin || '');
+        const originMatch = originNorm ? byName.get(originNorm) : null;
+        if (originMatch && route.stationId !== originMatch.id) {
+          route.stationId = originMatch.id;
+          route.origin = `${originMatch.name}站`;
+          changed = true;
+        }
+
+        const destRaw = route.destStationName || route.dest || '';
+        const destNorm = normalizeStationName(destRaw);
+        if (destNorm && destNorm !== '所有目的地') {
+          const destMatch = byName.get(destNorm);
+          if (destMatch) {
+            if (route.destStationName !== destMatch.name) {
+              route.destStationName = destMatch.name;
+              changed = true;
+            }
+            const canonicalDest = `${destMatch.name}站`;
+            if (route.dest !== canonicalDest) {
+              route.dest = canonicalDest;
+              changed = true;
+            }
+          }
+        }
+      });
+
+      if (changed) {
+        try {
+          localStorage.setItem('hk_dashboard_config_v5', JSON.stringify(appConfig));
+        } catch (e) {
+          console.warn('儲存輕鐵路線資料遷移結果失敗', e);
+        }
+      }
+    }
+
+    function migrateSavedMtrRoutes() {
+      if (!appConfig || !Array.isArray(appConfig.routes)) return;
+
+      const aliases = {
+        TML: { TSW: 'TIS' },
+        TWL: { TSW: 'TSU' },
+        EAL: { EXH: 'EXC' },
+        TKL: { TTI: 'TIK', HAO: 'HAH' }
+      };
+
+      let changed = false;
+      appConfig.routes.forEach(route => {
+        if (!route || route.type !== 'MTR') return;
+
+        const line = String(route.line || '').toUpperCase();
+        const oldSta = String(route.sta || '').toUpperCase();
+        const canonical = (aliases[line] || {})[oldSta];
+
+        if (canonical && canonical !== oldSta) {
+          route.sta = canonical;
+          const stationName = getMtrStationName(line, canonical);
+          if (stationName && route.origin) route.origin = `${stationName}站`;
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        try {
+          localStorage.setItem('hk_dashboard_config_v5', JSON.stringify(appConfig));
+        } catch (e) {
+          console.warn('儲存港鐵重鐵路線資料遷移結果失敗', e);
+        }
+      }
+    }
+
+    migrateSavedMtrRoutes();
+    migrateSavedLrtRoutes();
+
+    window.onload = async function() {
+      initClock();
+      fetchWeatherData();
+      renderRouteCards();
+      fetchEtaData();
+      initModalSelectors();
+      await loadAllMtrBusStationsMaster();
+
+      setInterval(updateClock, 1000);
+      setInterval(fetchEtaData, 15000);
+      setInterval(fetchWeatherData, 300000);
+    };
+
+    function initClock() {
+      updateClock();
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      const secs = String(now.getSeconds()).padStart(2, '0');
+
+      document.getElementById('clockDisplay').textContent = `${hours}:${mins}:${secs}`;
+
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const date = now.getDate();
+      const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+      const weekDay = weekDays[now.getDay()];
+
+      document.getElementById('dateDisplay').textContent = `${year}年${month}月${date}日(${weekDay})`;
+
+      updateHolidayCountdown(now);
+    }
+
+    function updateHolidayCountdown(now) {
+      const mode = appConfig.countdownMode || 'AUTO_HK_HOLIDAY';
+      let title = '';
+      let targetDateStr = '';
+      let badgeLabel = '公眾假期';
+
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      if (mode === 'AUTO_HK_HOLIDAY') {
+        const upcoming = HK_PUBLIC_HOLIDAYS.filter(h => h.date >= todayStr).sort((a, b) => new Date(a.date) - new Date(b.date));
+        if (upcoming.length > 0) {
+          const nextHoliday = upcoming[0];
+          title = nextHoliday.name;
+          targetDateStr = nextHoliday.date;
+          badgeLabel = '自動追蹤';
+          document.getElementById('countdownBadgeMode').textContent = '香港公眾假期 (自動)';
+        } else {
+          title = '新年假期';
+          targetDateStr = `${now.getFullYear() + 1}-01-01`;
+          badgeLabel = '自動追蹤';
+        }
+      } else if (mode === 'SELECT_HOLIDAY') {
+        title = appConfig.countdownTitle || '香港公眾假期';
+        targetDateStr = appConfig.countdownDate || '2026-09-26';
+        badgeLabel = '指定假期';
+        document.getElementById('countdownBadgeMode').textContent = '指定假期倒數';
+      } else {
+        title = appConfig.countdownTitle || '自訂倒數日';
+        targetDateStr = appConfig.countdownDate || todayStr;
+        badgeLabel = '自訂倒數';
+        document.getElementById('countdownBadgeMode').textContent = '自訂倒數提醒';
+      }
+
+      document.getElementById('countdownTypeLabel').textContent = badgeLabel;
+      document.getElementById('countdownTitle').textContent = title;
+
+      if (targetDateStr) {
+        const parts = targetDateStr.split('-');
+        const targetObj = new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
+        const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+        document.getElementById('countdownDateSub').textContent = `${parts[0]}年${parts[1]}月${parts[2]}日 (星期${weekDays[targetObj.getDay()]})`;
+
+        const diffTime = targetObj.setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        document.getElementById('countdownDays').textContent = diffDays >= 0 ? diffDays : 0;
+      }
+    }
+
+    async function fetchWeatherData() {
+      try {
+        const response = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
+        const data = await response.json();
+
+        if (data.temperature && data.temperature.data) {
+          const selectedStation = appConfig.weatherStation || '京士柏';
+          const stationInfo = data.temperature.data.find(s => s.place.includes(selectedStation)) || data.temperature.data[0];
+          
+          document.getElementById('stationName').textContent = stationInfo.place;
+          document.getElementById('currentTemp').textContent = `${stationInfo.value}°C`;
+
+          const temps = data.temperature.data.map(d => d.value);
+          document.getElementById('minTemp').textContent = Math.min(...temps);
+          document.getElementById('maxTemp').textContent = Math.max(...temps);
+        }
+
+        if (data.humidity && data.humidity.data && data.humidity.data.length > 0) {
+          document.getElementById('humidity').textContent = `${data.humidity.data[0].value}%`;
+        }
+
+        if (data.uvindex && data.uvindex.data && data.uvindex.data.length > 0) {
+          const uv = data.uvindex.data[0];
+          document.getElementById('uvIndex').innerHTML = `紫外線指數: <span class="font-semibold text-amber-300">${uv.value} (${uv.desc || '低'})</span>`;
+        } else {
+          document.getElementById('uvIndex').innerHTML = `紫外線指數: <span class="font-semibold text-slate-400">0 (低)</span>`;
+        }
+
+        if (data.icon && data.icon.length > 0) {
+          const iconCode = data.icon[0];
+          document.getElementById('weatherIcon').src = `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png`;
+        }
+
+        const warningBadge = document.getElementById('warningBadge');
+        if (data.warningMessage && data.warningMessage.length > 0) {
+          warningBadge.classList.remove('hidden');
+          warningBadge.textContent = data.warningMessage[0];
+        } else {
+          warningBadge.classList.add('hidden');
+        }
+
+      } catch (err) {
+        console.error('HKO Weather Fetch Error:', err);
+      }
+    }
+
+    function renderRouteCards() {
+      const container = document.getElementById('transitCardList');
+      container.innerHTML = '';
+
+      const routes = appConfig.routes || [];
+      document.getElementById('routeCountBadge').textContent = `${routes.length} 條路線`;
+
+      routes.forEach((route) => {
+        const cardHtml = createCardElement(route);
+        container.insertAdjacentHTML('beforeend', cardHtml);
+      });
+    }
+
+    function createCardElement(route) {
+      let badgeBg = 'bg-rose-600 text-white';
+      let badgeLabel = route.badgeText || route.type;
+
+      if (route.type === 'CTB') {
+        badgeBg = 'bg-amber-500 text-black';
+      } else if (route.type === 'MTRBUS') {
+        badgeBg = 'bg-fuchsia-800 text-white';
+      } else if (route.type === 'MTR') {
+        badgeBg = 'bg-sky-800 text-white';
+      } else if (route.type === 'LRT') {
+        badgeBg = 'bg-teal-700 text-white';
+      }
+
+      const isLrt = (route.type === 'LRT');
+      const rightColWidth = isLrt ? 'min-w-[160px] sm:min-w-[200px]' : 'min-w-[75px] sm:min-w-[90px]';
+
+      return `
+        <div id="card-${route.id}" class="bg-white rounded-2xl p-3 sm:p-3.5 shadow-lg text-slate-900 flex justify-between items-center transition transform active:scale-[0.995]">
+          <div class="flex flex-col gap-0.5 pr-2 min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="${badgeBg} text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded tracking-wider uppercase shrink-0">
+                ${badgeLabel}
+              </span>
+              <span class="text-xl sm:text-2xl font-black tracking-tight font-sans text-slate-900 truncate">
+                ${route.routeNo}
+              </span>
+            </div>
+            <div class="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1.5 flex-wrap truncate">
+              <span class="truncate">${route.origin}</span>
+              <span class="text-rose-600 font-bold text-[11px] sm:text-xs shrink-0 ${route.type === 'MTR' ? 'mtr-live-direction' : ''}">${route.type === 'MTR' && route._liveDest ? `往 ${route._liveDest}` : `往 ${route.dest}`}</span>
+            </div>
+          </div>
+
+          <div class="text-right shrink-0 ${rightColWidth}">
+            <div id="eta-primary-${route.id}" class="text-2xl sm:text-3xl font-extrabold text-cyan-600 font-mono tracking-tight">
+              <i class="fa-solid fa-spinner animate-spin text-base text-slate-400"></i>
+            </div>
+            <div id="eta-secondary-${route.id}" class="text-[11px] sm:text-xs font-bold text-slate-400 font-mono h-4">
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function fetchEtaData() {
+      const routes = appConfig.routes || [];
+
+      for (const route of routes) {
+        try {
+          if (route.type === 'KMB') {
+            await fetchKmbEta(route);
+          } else if (route.type === 'CTB') {
+            await fetchCtbEta(route);
+          } else if (route.type === 'MTRBUS') {
+            await fetchMtrBusEta(route);
+          } else if (route.type === 'MTR') {
+            await fetchMtrEta(route);
+          } else if (route.type === 'LRT') {
+            await fetchLrtEta(route);
+          }
+        } catch (error) {
+          updateCardEtaUI(route.id, '暫無班次', '');
+        }
+      }
+    }
+
+    function manualRefreshEta() {
+      const icon = document.getElementById('transitRefreshIcon');
+      if (icon) icon.classList.add('fa-spin');
+      fetchEtaData().finally(() => {
+        setTimeout(() => {
+          if (icon) icon.classList.remove('fa-spin');
+        }, 600);
+      });
+    }
+
+    async function fetchKmbEta(route) {
+      try {
+        const stopId = route.stopId;
+        const routeNo = route.routeNo;
+        const res = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stopId}`);
+        const data = await res.json();
+
+        if (data && data.data) {
+          const now = new Date();
+          const filtered = data.data
+            .filter(item => item.route === routeNo && item.eta && (!route.boundDir || item.dir === route.boundDir))
+            .map(item => Math.round((new Date(item.eta) - now) / 60000))
+            .filter(m => m >= 0)
+            .sort((a, b) => a - b);
+
+          if (filtered.length > 0) {
+            updateCardEtaUI(route.id, filtered[0] === 0 ? '即將' : filtered[0], filtered[1] !== undefined ? filtered[1] : '');
+          } else {
+            updateCardEtaUI(route.id, '暫無班次', '');
+          }
+        } else {
+          updateCardEtaUI(route.id, '暫無班次', '');
+        }
+      } catch (err) {
+        updateCardEtaUI(route.id, '暫無班次', '');
+      }
+    }
+
+    async function fetchCtbEta(route) {
+      try {
+        const stopId = route.stopId;
+        const routeNo = route.routeNo;
+        const res = await fetch(`https://rt.data.gov.hk/v2/transport/citybus/eta/ctb/${stopId}/${routeNo}`);
+        const data = await res.json();
+
+        if (data && data.data) {
+          const now = new Date();
+          const targetDir = route.boundDir || 'O';
+          const filtered = data.data
+            .filter(item => item.eta && (item.dir === targetDir || !item.dir))
+            .map(item => Math.round((new Date(item.eta) - now) / 60000))
+            .filter(m => m >= 0)
+            .sort((a, b) => a - b);
+
+          if (filtered.length > 0) {
+            updateCardEtaUI(route.id, filtered[0] === 0 ? '即將' : filtered[0], filtered[1] !== undefined ? filtered[1] : '');
+          } else {
+            updateCardEtaUI(route.id, '暫無班次', '');
+          }
+        } else {
+          updateCardEtaUI(route.id, '暫無班次', '');
+        }
+      } catch (err) {
+        updateCardEtaUI(route.id, '暫無班次', '');
+      }
+    }
+
+    async function fetchMtrBusEta(route) {
+      try {
+        const routeName = route.routeNo;
+        const targetStopId = route.stopId;
+
+        const response = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            routeName: routeName,
+            language: 'zh'
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data && (data.busStop || data.busStopList)) {
+          const stopList = data.busStop || data.busStopList || [];
+          const targetNormalized = normalizeMtrBusStopId(targetStopId);
+          const matchedStop = stopList.find(s => {
+            const sid = s.busStopId || s.busStopCode || s.stopId || '';
+            return sid === targetStopId || sid === targetStopId?.toUpperCase() || normalizeMtrBusStopId(sid) === targetNormalized;
+          });
+
+          if (matchedStop && matchedStop.bus && matchedStop.bus.length > 0) {
+            const minutesList = matchedStop.bus.map(b => {
+              if (b.arrivalTimeInSecond !== undefined) {
+                return Math.max(0, Math.round(parseInt(b.arrivalTimeInSecond) / 60));
+              }
+              if (b.arrivalTimeText) {
+                const match = b.arrivalTimeText.match(/\d+/);
+                return match ? parseInt(match[0]) : 0;
+              }
+              return null;
+            }).filter(m => m !== null);
+
+            if (minutesList.length > 0) {
+              updateCardEtaUI(route.id, minutesList[0] === 0 ? '即將' : minutesList[0], minutesList[1] !== undefined ? minutesList[1] : '');
+              return;
+            }
+          }
+        }
+        updateCardEtaUI(route.id, '暫無班次', '');
+      } catch (err) {
+        updateCardEtaUI(route.id, '暫無班次', '');
+      }
+    }
+
+    function getCanonicalMtrStationCode(line, sta) {
+      const aliases = {
+        TML: { TSW: 'TIS' },
+        TWL: { TSW: 'TSU' },
+        EAL: { EXH: 'EXC' },
+        TKL: { TTI: 'TIK', HAO: 'HAH' }
+      };
+      const key = String(sta || '').trim().toUpperCase();
+      return (aliases[String(line || '').toUpperCase()] || {})[key] || key;
+    }
+
+    function getMtrStationName(line, sta) {
+      const lineObj = MTR_LINES.find(l => l.code === line);
+      const station = lineObj && lineObj.stations.find(s => s.code === sta);
+      return station ? station.name : sta;
+    }
+
+    function updateMtrDirectionOptionLabels(line, sta) {
+      const boundSelect = document.getElementById('mtrBoundSelect');
+      if (!boundSelect) return;
+
+      const upOpt = boundSelect.querySelector('option[value="UP"]');
+      const downOpt = boundSelect.querySelector('option[value="DOWN"]');
+      if (upOpt) upOpt.textContent = 'UP（API 上行方向）';
+      if (downOpt) downOpt.textContent = 'DOWN（API 下行方向）';
+
+      // Do not guess geography-specific directions. UP/DOWN are the MTR API
+      // direction keys; the live card uses the actual destination returned by API.
+    }
+
+    async function fetchMtrEta(route) {
+      try {
+        const line = String(route.line || 'TML').trim().toUpperCase();
+        const sta = getCanonicalMtrStationCode(line, route.sta || 'YUL');
+        const dir = String(route.dir || 'DOWN').trim().toUpperCase();
+
+        if (!['UP', 'DOWN'].includes(dir)) {
+          updateCardEtaUI(route.id, '暫無班次', '');
+          return;
+        }
+
+        const lineObj = MTR_LINES.find(l => l.code === line);
+        const stationObj = lineObj && lineObj.stations.find(s => s.code === sta);
+        if (!lineObj || !stationObj) {
+          console.warn('MTR station code not found in local catalogue:', line, sta);
+          updateCardEtaUI(route.id, '暫無班次', '');
+          return;
+        }
+
+        // Keep legacy saved configurations working after station-code corrections.
+        if (route.sta !== sta) {
+          route.sta = sta;
+          try {
+            localStorage.setItem('hk_dashboard_config_v5', JSON.stringify(appConfig));
+          } catch (e) {}
+        }
+
+        const res = await fetch(
+          `https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${encodeURIComponent(line)}&sta=${encodeURIComponent(sta)}&lang=TC`,
+          { cache: 'no-store' }
+        );
+        if (!res.ok) throw new Error(`MTR API HTTP ${res.status}`);
+
+        const data = await res.json();
+        const stationKey = `${line}-${sta}`;
+        const stationData = data && data.data && data.data[stationKey];
+
+        if (Number(data && data.status) === 1 && stationData) {
+          const scheduleData = Array.isArray(stationData[dir]) ? stationData[dir] : [];
+
+          const validEntries = scheduleData
+            .filter(item => item && String(item.valid || 'Y').toUpperCase() !== 'N')
+            .map(item => {
+              const mins = Number(item.ttnt);
+              return Number.isFinite(mins) && mins >= 0 ? {
+                mins,
+                dest: item.dest || '',
+                time: item.time || '',
+                seq: Number(item.seq) || 999
+              } : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.mins - b.mins || a.seq - b.seq);
+
+          if (validEntries.length > 0) {
+            const first = validEntries[0];
+            const second = validEntries[1];
+
+            // Preserve the existing card layout, but show the actual API
+            // destination so the displayed direction is never guessed.
+            if (first.dest) {
+              const destName = getMtrStationName(line, first.dest);
+              const card = document.getElementById(`card-${route.id}`);
+              if (card) {
+                const directionEl = card.querySelector('.mtr-live-direction');
+                if (directionEl) directionEl.textContent = `往 ${destName}`;
+              }
+              route._liveDest = destName;
+            }
+
+            updateCardEtaUI(
+              route.id,
+              first.mins === 0 ? '即將' : first.mins,
+              second ? (second.mins === 0 ? '即將' : second.mins) : ''
+            );
+            return;
+          }
+        }
+
+        updateCardEtaUI(route.id, '暫無班次', '');
+      } catch (err) {
+        console.warn('MTR ETA fetch failed:', err);
+        updateCardEtaUI(route.id, '暫無班次', '');
+      }
+    }
+
+    function normalizeStationName(name) {
+      if (!name) return '';
+      return String(name)
+        .replace(/[（(].*?[）)]/g, '')
+        .replace(/站$/g, '')
+        .replace(/總站$/g, '')
+        .replace(/車站$/g, '')
+        .trim();
+    }
+
+    async function fetchStationSchedule(stId, includeSpecial = false) {
+      try {
+        const qs = `station_id=${encodeURIComponent(stId)}&with_special=${includeSpecial ? '1' : '0'}`;
+        const res = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?${qs}`);
+        return await res.json();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function getRouteNumberFromItem(item) {
+      if (!item) return '';
+      if (Number(item.special) === 1) {
+        return String(item.additionalInfo1 || '').replace(/\*+$/g, '').trim();
+      }
+      return String(item.route_no || '').trim();
+    }
+
+    function parseLrtMinutes(item) {
+      const timeText = String(item?.time_ch ?? item?.time_en ?? '').trim();
+      if (!timeText || timeText === '-' || /即將|抵達|到達|離開|正在離開/.test(timeText)) return 0;
+      const match = timeText.match(/(\d+(?:\.\d+)?)/);
+      if (!match) return null;
+      const value = Number(match[1]);
+      return Number.isFinite(value) ? Math.max(0, Math.round(value)) : null;
+    }
+
+    function doesRouteServeTrip(routeNo, originStationId, targetDestNorm, trainDestCh) {
+      const routeInfo = getLrtRouteInfo(routeNo);
+      if (!routeInfo) return false;
+
+      const trainDestNorm = normalizeStationName(trainDestCh);
+      const sequences = getLrtDirectionSequences(routeInfo);
+      for (const seq of sequences) {
+        const originIdx = seq.findIndex(st => st.id === originStationId);
+        if (originIdx === -1) continue;
+
+        if (!targetDestNorm) return true;
+
+        const destIdx = seq.findIndex(st => normalizeStationName(st.name) === targetDestNorm);
+        if (destIdx === -1 || originIdx >= destIdx) continue;
+
+        if (!trainDestNorm) return false;
+        const trainDestIdx = seq.findIndex(st => normalizeStationName(st.name) === trainDestNorm);
+        if (trainDestIdx === -1) continue;
+
+        if (trainDestIdx >= destIdx) return true;
+      }
+      return false;
+    }
+
+    function isSpecialRouteItemFor(item, requestedRouteNo) {
+      if (!item || Number(item.special) !== 1) return false;
+      const reported = String(item.additionalInfo1 || '').replace(/\*+$/g, '').trim();
+      return reported === String(requestedRouteNo);
+    }
+
+    function collectLrtDepartures(data, route, allowSpecial = false) {
+      const result = [];
+      if (!data || Number(data.status) !== 1 || !Array.isArray(data.platform_list)) return result;
+
+      const isAllRoutes = route.isAllRoutes || route.routeNo === '所有路線' || route.routeNo === 'ALL';
+      const targetRouteNo = isAllRoutes ? '' : String(route.routeNo);
+      const targetDestNorm = normalizeStationName(route.destStationName || route.dest || '');
+
+      data.platform_list.forEach(platform => {
+        const platformId = platform.platform_id;
+        (platform.route_list || []).forEach(item => {
+          const isSpecial = Number(item.special) === 1;
+          if (isSpecial && !allowSpecial) return;
+
+          const itemRouteNo = getRouteNumberFromItem(item);
+          if (!isAllRoutes) {
+            if (itemRouteNo !== targetRouteNo) return;
+            if (!isSpecial && !doesRouteServeTrip(targetRouteNo, route.stationId, targetDestNorm, item.dest_ch)) return;
+            if (isSpecial && !isSpecialRouteItemFor(item, targetRouteNo)) return;
+            if (isSpecial && targetDestNorm && normalizeStationName(item.dest_ch) !== targetDestNorm) return;
+          } else if (targetDestNorm && !isSpecial && !doesRouteServeTrip(itemRouteNo, route.stationId, targetDestNorm, item.dest_ch)) {
+            return;
+          } else if (targetDestNorm && isSpecial) {
+            return;
+          }
+
+          const mins = parseLrtMinutes(item);
+          if (mins === null) return;
+          result.push({
+            routeNo: itemRouteNo,
+            platformId: `${platformId}號月台`,
+            dest: item.dest_ch || '—',
+            mins,
+            timeText: item.time_ch || item.time_en || '',
+            isPrediction: false,
+            special: isSpecial
+          });
+        });
+      });
+
+      return result.sort((a, b) => a.mins - b.mins);
+    }
+
+    async function fetchLrtEta(route) {
+      try {
+        const stationId = route.stationId;
+        if (!stationId) {
+          updateCardEtaUI(route.id, '暫無班次', '');
+          return;
+        }
+
+        const isAllRoutes = route.isAllRoutes || route.routeNo === '所有路線' || route.routeNo === 'ALL';
+        const isSpecialSavedRoute = !isAllRoutes && !getLrtRouteInfo(route.routeNo);
+        const includeSpecial = isSpecialSavedRoute || false;
+
+        const data = await fetchStationSchedule(stationId, includeSpecial);
+        let departureList = collectLrtDepartures(data, route, includeSpecial);
+
+        departureList = departureList
+          .filter((item, idx, arr) => idx === arr.findIndex(x => x.routeNo === item.routeNo && x.mins === item.mins && x.platformId === item.platformId))
+          .slice(0, 2);
+
+        if (departureList.length > 0) {
+          updateCardLrtAllRoutesUI(route.id, departureList[0], departureList[1]);
+        } else {
+          updateCardEtaUI(route.id, '暫無班次', '');
+        }
+      } catch (err) {
+        console.warn('LRT ETA fetch failed:', err);
+        updateCardEtaUI(route.id, '暫無班次', '');
+      }
+    }
+
+    function updateCardLrtAllRoutesUI(cardId, dep1, dep2) {
+      const primaryEl = document.getElementById(`eta-primary-${cardId}`);
+      const secondaryEl = document.getElementById(`eta-secondary-${cardId}`);
+
+      if (!primaryEl || !secondaryEl) return;
+
+      if (!dep1) {
+        primaryEl.className = 'text-xs sm:text-sm font-bold text-slate-400 font-sans';
+        primaryEl.textContent = '暫無班次';
+        secondaryEl.textContent = '';
+        return;
+      }
+
+      const dep1Prefix = dep1.isPrediction ? '~' : '';
+      const dep1Time = dep1.mins === 0 ? '即將' : `${dep1Prefix}${dep1.mins}`;
+      const dep1Unit = dep1.mins === 0 ? '' : '分';
+
+      primaryEl.className = 'text-right font-mono tracking-tight';
+      primaryEl.innerHTML = `
+        <div class="flex items-center justify-end gap-1.5 leading-none">
+          <span class="bg-teal-800 text-teal-100 text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded font-black tracking-wider">${dep1.routeNo}綫</span>
+          <span class="text-[10px] sm:text-[11px] font-bold text-slate-600">${dep1.platformId} 往${dep1.dest}</span>
+          <span class="text-xl sm:text-2xl font-black text-cyan-600 ml-1">${dep1Time}<span class="text-xs font-bold ml-0.5">${dep1Unit}</span></span>
+        </div>
+      `;
+
+      if (dep2) {
+        const dep2Prefix = dep2.isPrediction ? '~' : '';
+        const dep2Time = dep2.mins === 0 ? '即將' : `${dep2Prefix}${dep2.mins}`;
+        const dep2Unit = dep2.mins === 0 ? '' : '分';
+
+        secondaryEl.className = 'text-right font-mono mt-1 h-auto';
+        secondaryEl.innerHTML = `
+          <div class="flex items-center justify-end gap-1.5 leading-none">
+            <span class="bg-slate-700 text-slate-200 text-[9px] sm:text-[10px] px-1 py-0.5 rounded font-bold">${dep2.routeNo}綫</span>
+            <span class="text-[9px] sm:text-[10px] font-semibold text-slate-500">${dep2.platformId} 往${dep2.dest}</span>
+            <span class="text-xs sm:text-sm font-bold text-slate-600 ml-1">${dep2Time}<span class="text-[9px] ml-0.5">${dep2Unit}</span></span>
+          </div>
+        `;
+      } else {
+        secondaryEl.innerHTML = '';
+      }
+    }
+
+    function updateCardEtaUI(cardId, primaryText, secondaryText) {
+      const primaryEl = document.getElementById(`eta-primary-${cardId}`);
+      const secondaryEl = document.getElementById(`eta-secondary-${cardId}`);
+
+      if (!primaryEl || !secondaryEl) return;
+
+      if (primaryText === '暫無班次') {
+        primaryEl.className = 'text-xs sm:text-sm font-bold text-slate-400 font-sans';
+        primaryEl.textContent = '暫無班次';
+        secondaryEl.textContent = '';
+      } else {
+        primaryEl.className = 'text-2xl sm:text-3xl font-black text-cyan-600 font-mono tracking-tight';
+        primaryEl.textContent = primaryText;
+        secondaryEl.textContent = secondaryText !== '' ? secondaryText : '';
+      }
+    }
+
+    function openModal(id) {
+      const modal = document.getElementById(id);
+      modal.classList.remove('hidden');
+
+      document.getElementById('selectCountdownMode').value = appConfig.countdownMode || 'AUTO_HK_HOLIDAY';
+      document.getElementById('inputCountdownTitle').value = appConfig.countdownTitle || '';
+      document.getElementById('inputCountdownDate').value = appConfig.countdownDate || '';
+      document.getElementById('selectWeatherStation').value = appConfig.weatherStation || '京士柏';
+
+      onCountdownModeChange();
+      renderModalRouteList();
+      preloadBusRoutes(selectedOperator);
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function onCountdownModeChange() {
+      const mode = document.getElementById('selectCountdownMode').value;
+      const holidayWrap = document.getElementById('holidaySelectWrap');
+      const customWrap = document.getElementById('customCountdownInputs');
+
+      if (mode === 'AUTO_HK_HOLIDAY') {
+        holidayWrap.classList.add('hidden');
+        customWrap.classList.add('hidden');
+      } else if (mode === 'SELECT_HOLIDAY') {
+        holidayWrap.classList.remove('hidden');
+        customWrap.classList.add('hidden');
+        populateHolidayDropdown();
+      } else {
+        holidayWrap.classList.add('hidden');
+        customWrap.classList.remove('hidden');
+      }
+    }
+
+    function populateHolidayDropdown() {
+      const select = document.getElementById('selectSpecificHoliday');
+      select.innerHTML = '';
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      HK_PUBLIC_HOLIDAYS.filter(h => h.date >= todayStr).forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify(h);
+        opt.textContent = `${h.name} (${h.date})`;
+        if (appConfig.countdownDate === h.date) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function selectOperator(op) {
+      selectedOperator = op;
+      ['KMB', 'CTB', 'MTRBUS', 'MTR', 'LRT'].forEach(o => {
+        const btn = document.getElementById(`tab-${o}`);
+        if (btn) {
+          if (o === op) {
+            btn.className = 'py-1 rounded font-bold transition bg-amber-500 text-black text-[10px] sm:text-xs shadow';
+          } else {
+            btn.className = 'py-1 rounded font-bold transition text-slate-400 hover:text-white text-[10px] sm:text-xs';
+          }
+        }
+      });
+
+      const busContainer = document.getElementById('searchContainerBus');
+      const mtrBusContainer = document.getElementById('searchContainerMTRBus');
+      const mtrContainer = document.getElementById('searchContainerMTR');
+      const lrtContainer = document.getElementById('searchContainerLRT');
+
+      busContainer.classList.add('hidden');
+      mtrBusContainer.classList.add('hidden');
+      mtrContainer.classList.add('hidden');
+      if (lrtContainer) lrtContainer.classList.add('hidden');
+
+      if (op === 'KMB' || op === 'CTB') {
+        busContainer.classList.remove('hidden');
+        preloadBusRoutes(op);
+      } else if (op === 'MTRBUS') {
+        mtrBusContainer.classList.remove('hidden');
+        initMtrBusDropdown();
+      } else if (op === 'MTR') {
+        mtrContainer.classList.remove('hidden');
+      } else if (op === 'LRT') {
+        if (lrtContainer) lrtContainer.classList.remove('hidden');
+        initLrtDropdown();
+      }
+    }
+
+    async function preloadBusRoutes(op) {
+      const routeDropdown = document.getElementById('routeSelectDropdown');
+      routeDropdown.innerHTML = '<option value="">載入路線清單中...</option>';
+
+      try {
+        let url = '';
+        if (op === 'KMB') {
+          url = 'https://data.etabus.gov.hk/v1/transport/kmb/route';
+        } else if (op === 'CTB') {
+          url = 'https://rt.data.gov.hk/v2/transport/citybus/route/ctb';
+        }
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        fetchedBusRoutes = data.data || [];
+        routeDropdown.innerHTML = '<option value="">-- 請在上方輸入號碼搜尋 (例如: 1A, 102, 68X...) --</option>';
+      } catch (e) {
+        routeDropdown.innerHTML = '<option value="">載入路線失敗，請重新開啟視窗</option>';
+      }
+    }
+
+    function filterBusRoutes() {
+      const keyword = document.getElementById('routeSearchInput').value.trim().toUpperCase();
+      const dropdown = document.getElementById('routeSelectDropdown');
+      dropdown.innerHTML = '';
+
+      if (!keyword) {
+        dropdown.innerHTML = '<option value="">-- 請輸入路線號碼 --</option>';
+        return;
+      }
+
+      if (selectedOperator === 'KMB') {
+        const matches = fetchedBusRoutes.filter(r => (r.route || '').toUpperCase().startsWith(keyword));
+        if (matches.length === 0) {
+          dropdown.innerHTML = `<option value="">未找到匹配 ${keyword} 的九巴路線</option>`;
+          return;
+        }
+
+        dropdown.innerHTML = '<option value="">-- 請選擇路線及方向 --</option>';
+        matches.slice(0, 40).forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = JSON.stringify({
+            route: r.route,
+            boundDir: r.bound,
+            dirApi: r.bound === 'I' ? 'inbound' : 'outbound',
+            serviceType: r.service_type || '1',
+            orig_tc: r.orig_tc,
+            dest_tc: r.dest_tc
+          });
+          opt.textContent = `${r.route}: ${r.orig_tc} 往 ${r.dest_tc}`;
+          dropdown.appendChild(opt);
+        });
+      } else if (selectedOperator === 'CTB') {
+        const matches = fetchedBusRoutes.filter(r => (r.route || '').toUpperCase().startsWith(keyword));
+        if (matches.length === 0) {
+          dropdown.innerHTML = `<option value="">未找到匹配 ${keyword} 的城巴路線</option>`;
+          return;
+        }
+
+        dropdown.innerHTML = '<option value="">-- 請選擇路線及方向 --</option>';
+        matches.slice(0, 30).forEach(r => {
+          const optOut = document.createElement('option');
+          optOut.value = JSON.stringify({
+            route: r.route,
+            boundDir: 'O',
+            dirApi: 'outbound',
+            orig_tc: r.orig_tc,
+            dest_tc: r.dest_tc
+          });
+          optOut.textContent = `${r.route}: ${r.orig_tc} 往 ${r.dest_tc}`;
+          dropdown.appendChild(optOut);
+
+          const optIn = document.createElement('option');
+          optIn.value = JSON.stringify({
+            route: r.route,
+            boundDir: 'I',
+            dirApi: 'inbound',
+            orig_tc: r.dest_tc,
+            dest_tc: r.orig_tc
+          });
+          optIn.textContent = `${r.route}: ${r.dest_tc} 往 ${r.orig_tc}`;
+          dropdown.appendChild(optIn);
+        });
+      }
+    }
+
+    async function onRouteSelected() {
+      const val = document.getElementById('routeSelectDropdown').value;
+      const stopDropdown = document.getElementById('stopSelectDropdown');
+      stopDropdown.innerHTML = '<option value="">載入站點中...</option>';
+
+      if (!val) return;
+
+      const routeObj = JSON.parse(val);
+
+      try {
+        if (selectedOperator === 'KMB') {
+          const res = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${routeObj.route}/${routeObj.dirApi}/${routeObj.serviceType}`);
+          const stopData = await res.json();
+          
+          stopDropdown.innerHTML = '<option value="">-- 請選擇上車站點 --</option>';
+          for (const s of (stopData.data || [])) {
+            const stopInfoRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${s.stop}`);
+            const stopInfo = await stopInfoRes.json();
+            const opt = document.createElement('option');
+            opt.value = JSON.stringify({ stopId: s.stop, stopName: stopInfo.data.name_tc });
+            opt.textContent = `${s.seq}. ${stopInfo.data.name_tc}`;
+            stopDropdown.appendChild(opt);
+          }
+        } else if (selectedOperator === 'CTB') {
+          const res = await fetch(`https://rt.data.gov.hk/v2/transport/citybus/route-stop/ctb/${routeObj.route}/${routeObj.dirApi}`);
+          const stopData = await res.json();
+
+          stopDropdown.innerHTML = '<option value="">-- 請選擇上車站點 --</option>';
+          for (const s of (stopData.data || [])) {
+            const stopInfoRes = await fetch(`https://rt.data.gov.hk/v2/transport/citybus/stop/${s.stop}`);
+            const stopInfo = await stopInfoRes.json();
+            const opt = document.createElement('option');
+            opt.value = JSON.stringify({ stopId: s.stop, stopName: stopInfo.data.name_tc });
+            opt.textContent = `${s.seq}. ${stopInfo.data.name_tc}`;
+            stopDropdown.appendChild(opt);
+          }
+        }
+      } catch (e) {
+        stopDropdown.innerHTML = '<option value="">載入站點失敗</option>';
+      }
+    }
+
+    async function initMtrBusDropdown() {
+      const select = document.getElementById('mtrBusRouteSelect');
+      select.innerHTML = '<option value="">-- 請選擇港鐵巴士路線及方向 --</option>';
+
+      await loadAllMtrBusStationsMaster();
+
+      const routeCatalog = MTR_BUS_ROUTES.filter(r => OFFICIAL_MTR_BUS_ROUTE_CODES.includes(r.route));
+      routeCatalog.forEach((r) => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify(r);
+        opt.textContent = `${r.route}: ${r.orig_tc} 往 ${r.dest_tc}`;
+        select.appendChild(opt);
+      });
+
+      if (select.options.length > 1) {
+        select.selectedIndex = 1;
+        onMtrBusRouteSelected();
+      }
+    }
+
+    async function onMtrBusRouteSelected() {
+      const val = document.getElementById('mtrBusRouteSelect').value;
+      const stopSelect = document.getElementById('mtrBusStopSelect');
+      stopSelect.innerHTML = '<option value="">載入中...</option>';
+
+      if (!val) return;
+      const routeInfo = JSON.parse(val);
+
+      try {
+        await loadAllMtrBusStationsMaster();
+
+        const schedRes = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            routeName: routeInfo.route,
+            language: 'zh'
+          })
+        });
+        const schedData = await schedRes.json();
+        const rawStopList = schedData.busStop || schedData.busStopList || [];
+
+        stopSelect.innerHTML = '';
+
+        const targetDir = String(routeInfo.boundDir || 'D').toUpperCase();
+        const filteredStops = rawStopList.filter(s => {
+          const sidRaw = s.busStopId || s.busStopCode || s.stopId || s.stop_code || '';
+          const sid = normalizeMtrBusStopId(sidRaw);
+          if (!sid.includes('-')) return true;
+          return sid.includes(`-${targetDir}`);
+        });
+
+        const stopList = filteredStops.length > 0 ? filteredStops : rawStopList;
+
+        if (stopList.length > 0) {
+          stopList.forEach((s, idx) => {
+            const stopId = s.busStopId || s.busStopCode || s.stopId || s.stop_code || `STOP-${idx + 1}`;
+            const sequence = Number(s.seq || s.sequence || s.stopSeq || s.stopSequence || idx + 1) || (idx + 1);
+            const rawApiName = s.busStopChineseName || s.busStopNameChi || s.busStopName || s.nameChi || s.name || s.stop_name_tc;
+            const displayName = getMtrBusStationName(stopId, routeInfo.route, rawApiName, sequence);
+
+            const opt = document.createElement('option');
+            opt.value = JSON.stringify({
+              stopId: stopId,
+              stopName: displayName
+            });
+            opt.textContent = `${sequence}. ${displayName}`;
+            stopSelect.appendChild(opt);
+          });
+        } else {
+          stopSelect.innerHTML = '<option value="">未能取得站點清單</option>';
+        }
+      } catch (err) {
+        stopSelect.innerHTML = '<option value="">載入失敗，請重試</option>';
+      }
+    }
+
+    function initLrtDropdown() {
+      const routeSelect = document.getElementById('lrtRouteSelect');
+      if (!routeSelect) return;
+      routeSelect.innerHTML = '';
+
+      const allOpt = document.createElement('option');
+      allOpt.value = 'ALL';
+      allOpt.textContent = '🌟 所有路線 (顯示最近2班官方列車)';
+      routeSelect.appendChild(allOpt);
+
+      LRT_ROUTES.forEach((r) => {
+        const opt = document.createElement('option');
+        opt.value = r.route;
+        opt.textContent = `輕鐵 ${r.route} 綫`;
+        routeSelect.appendChild(opt);
+      });
+
+      routeSelect.selectedIndex = 0;
+      onLrtRouteSelected();
+    }
+
+    function onLrtRouteSelected() {
+      const routeNo = document.getElementById('lrtRouteSelect').value;
+      const originSelect = document.getElementById('lrtOriginSelect');
+      const destSelect = document.getElementById('lrtDestSelect');
+
+      if (!originSelect || !destSelect) return;
+      originSelect.innerHTML = '<option value="">-- 請選擇上車站點 --</option>';
+      destSelect.innerHTML = '<option value="">-- 請先選擇上車站點 --</option>';
+      if (!routeNo) return;
+
+      if (routeNo === 'ALL') {
+        getAllLrtStations().forEach((st, idx) => {
+          const opt = document.createElement('option');
+          opt.value = JSON.stringify({ stationId: st.id, stationName: st.name, index: idx });
+          opt.textContent = `${st.name}站 (編號: ${st.id})`;
+          originSelect.appendChild(opt);
+        });
+        if (originSelect.options.length > 1) {
+          originSelect.selectedIndex = 0;
+          onLrtOriginChanged();
+        }
+        return;
+      }
+
+      const routeInfo = getLrtRouteInfo(routeNo);
+      if (!routeInfo) return;
+
+      getLrtRouteStationUnion(routeInfo).forEach((st, idx) => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify({ stationId: st.id, stationName: st.name, index: idx });
+        opt.textContent = `${idx + 1}. ${st.name}站 (${st.id})`;
+        originSelect.appendChild(opt);
+      });
+
+      if (originSelect.options.length > 1) {
+        originSelect.selectedIndex = 0;
+        onLrtOriginChanged();
+      }
+    }
+
+    function onLrtOriginChanged() {
+      const routeNo = document.getElementById('lrtRouteSelect').value;
+      const originVal = document.getElementById('lrtOriginSelect').value;
+      const destSelect = document.getElementById('lrtDestSelect');
+
+      if (!destSelect) return;
+      destSelect.innerHTML = '<option value="">-- 請選擇落車站點 --</option>';
+      if (!routeNo || !originVal) return;
+
+      const originObj = JSON.parse(originVal);
+
+      if (routeNo === 'ALL') {
+        const allDestOpt = document.createElement('option');
+        allDestOpt.value = JSON.stringify({ stationId: 'ALL', stationName: '所有目的地' });
+        allDestOpt.textContent = '🌟 所有目的地 (不限方向)';
+        destSelect.appendChild(allDestOpt);
+
+        getAllLrtStations().forEach(st => {
+          if (st.id !== originObj.stationId) {
+            const opt = document.createElement('option');
+            opt.value = JSON.stringify({ stationId: st.id, stationName: st.name });
+            opt.textContent = `${st.name}站 (${st.id})`;
+            destSelect.appendChild(opt);
+          }
+        });
+        destSelect.selectedIndex = 0;
+        return;
+      }
+
+      const routeInfo = getLrtRouteInfo(routeNo);
+      getReachableLrtDestinations(routeInfo, originObj.stationId).forEach((st) => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify({ stationId: st.id, stationName: st.name });
+        opt.textContent = `${st.name}站 (${st.id})`;
+        destSelect.appendChild(opt);
+      });
+
+      if (destSelect.options.length > 1) destSelect.selectedIndex = 1;
+    }
+
+    function initModalSelectors() {
+      const lineSelect = document.getElementById('mtrLineSelect');
+      lineSelect.innerHTML = '';
+      MTR_LINES.forEach((line, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = line.name;
+        lineSelect.appendChild(opt);
+      });
+      onMtrLineChange();
+    }
+
+    function onMtrLineChange() {
+      const idx = document.getElementById('mtrLineSelect').value;
+      const stationSelect = document.getElementById('mtrStationSelect');
+      stationSelect.innerHTML = '';
+
+      const stations = MTR_LINES[idx].stations;
+      stations.forEach(st => {
+        const opt = document.createElement('option');
+        opt.value = st.code;
+        opt.textContent = st.name;
+        stationSelect.appendChild(opt);
+      });
+
+      updateMtrDirectionOptionLabels(MTR_LINES[idx].code, stationSelect.value);
+    }
+
+    function addSelectedRoute() {
+      if (selectedOperator === 'KMB' || selectedOperator === 'CTB') {
+        const routeVal = document.getElementById('routeSelectDropdown').value;
+        const stopVal = document.getElementById('stopSelectDropdown').value;
+
+        if (!routeVal || !stopVal) return;
+
+        const routeObj = JSON.parse(routeVal);
+        const stopObj = JSON.parse(stopVal);
+
+        const newRoute = {
+          id: 'custom-' + Date.now(),
+          type: selectedOperator,
+          badgeText: selectedOperator === 'KMB' ? '九巴 KMB' : '城巴 CTB',
+          routeNo: routeObj.route,
+          origin: stopObj.stopName,
+          dest: routeObj.dest_tc || '總站',
+          stopId: stopObj.stopId,
+          boundDir: routeObj.boundDir
+        };
+
+        appConfig.routes.push(newRoute);
+      } else if (selectedOperator === 'MTRBUS') {
+        const routeVal = document.getElementById('mtrBusRouteSelect').value;
+        const stopVal = document.getElementById('mtrBusStopSelect').value;
+
+        if (!routeVal || !stopVal) return;
+
+        const routeObj = JSON.parse(routeVal);
+        const stopObj = JSON.parse(stopVal);
+
+        const newRoute = {
+          id: 'custom-' + Date.now(),
+          type: 'MTRBUS',
+          badgeText: '港鐵巴士',
+          routeNo: routeObj.route,
+          origin: stopObj.stopName,
+          dest: routeObj.dest_tc,
+          stopId: stopObj.stopId,
+          boundDir: routeObj.boundDir
+        };
+
+        appConfig.routes.push(newRoute);
+      } else if (selectedOperator === 'MTR') {
+        const lineIdx = document.getElementById('mtrLineSelect').value;
+        const lineObj = MTR_LINES[lineIdx];
+        const staCode = document.getElementById('mtrStationSelect').value;
+        const staName = document.getElementById('mtrStationSelect').selectedOptions[0].text;
+        const dir = document.getElementById('mtrBoundSelect').value;
+
+        const newRoute = {
+          id: 'custom-' + Date.now(),
+          type: 'MTR',
+          badgeText: '港鐵 MTR',
+          routeNo: lineObj.name.split(' ')[0],
+          origin: staName + '站',
+          dest: dir === 'DOWN' ? '下行/往終點方向' : '上行/往終點方向',
+          line: lineObj.code,
+          sta: staCode,
+          dir: dir
+        };
+
+        appConfig.routes.push(newRoute);
+      } else if (selectedOperator === 'LRT') {
+        const routeNo = document.getElementById('lrtRouteSelect').value;
+        const originVal = document.getElementById('lrtOriginSelect').value;
+        const destVal = document.getElementById('lrtDestSelect').value;
+
+        if (!routeNo || !originVal || !destVal) return;
+
+        const originObj = JSON.parse(originVal);
+        const destObj = JSON.parse(destVal);
+        const isAll = (routeNo === 'ALL');
+
+        const newRoute = {
+          id: 'custom-' + Date.now(),
+          type: 'LRT',
+          badgeText: '輕鐵 LRT',
+          routeNo: isAll ? '所有路線' : routeNo,
+          origin: originObj.stationName + '站',
+          dest: destObj.stationId === 'ALL' ? '所有目的地' : destObj.stationName + '站',
+          stationId: originObj.stationId,
+          destStationName: destObj.stationName,
+          isAllRoutes: isAll
+        };
+
+        appConfig.routes.push(newRoute);
+      }
+
+      renderModalRouteList();
+    }
+
+    function renderModalRouteList() {
+      const container = document.getElementById('modalRouteList');
+      container.innerHTML = '';
+
+      (appConfig.routes || []).forEach((r, idx) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between bg-slate-900 px-3 py-2 rounded text-xs border border-slate-700';
+        item.innerHTML = `
+          <div class="truncate mr-2">
+            <span class="font-bold text-amber-400">[${r.badgeText || r.type}] ${r.routeNo}</span>
+            <span class="text-slate-300 ml-1.5">${r.origin} 往 ${r.dest}</span>
+          </div>
+          <button onclick="removeRouteAt(${idx})" class="text-rose-400 hover:text-rose-300 font-bold p-1 shrink-0">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function removeRouteAt(idx) {
+      appConfig.routes.splice(idx, 1);
+      renderModalRouteList();
+    }
+
+    function addDefaultPresets() {
+      appConfig.routes = [];
+      renderModalRouteList();
+    }
+
+    function saveSettings() {
+      const mode = document.getElementById('selectCountdownMode').value;
+      appConfig.countdownMode = mode;
+
+      if (mode === 'SELECT_HOLIDAY') {
+        const holidayVal = document.getElementById('selectSpecificHoliday').value;
+        if (holidayVal) {
+          const hObj = JSON.parse(holidayVal);
+          appConfig.countdownTitle = hObj.name;
+          appConfig.countdownDate = hObj.date;
+        }
+      } else if (mode === 'CUSTOM') {
+        appConfig.countdownTitle = document.getElementById('inputCountdownTitle').value;
+        appConfig.countdownDate = document.getElementById('inputCountdownDate').value;
+      }
+
+      appConfig.weatherStation = document.getElementById('selectWeatherStation').value;
+      localStorage.setItem('hk_dashboard_config_v5', JSON.stringify(appConfig));
+
+      closeModal('customModal');
+      fetchWeatherData();
+      renderRouteCards();
+      fetchEtaData();
+    }
+  </script>
+</body>
+</html>
